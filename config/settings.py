@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "development-only-ab-testing-platform-secret-key"
 DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "opti-sim.vercel.app", ".vercel.app"]
 
 INSTALLED_APPS = [
     "django.contrib.staticfiles",
