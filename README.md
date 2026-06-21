@@ -1,84 +1,98 @@
-# A/B Testing & Statistical Simulation Platform
+# OptiSim // A/B Testing & Simulation Studio
 
-Production-grade, modular Python utilities for binary conversion experiments.
-The platform includes Monte Carlo simulation, frequentist inference, Bayesian
-Beta-Binomial inference, and Thompson Sampling traffic allocation.
+OptiSim is a production-grade, Django-powered web application and modular Python suite designed for binary conversion experiments. The platform empowers developers and data scientists to design, simulate, analyze, and estimate the financial return of A/B tests.
+
+Deployed live at: [opti-sim.vercel.app](https://opti-sim.vercel.app)
+
+---
+
+## Key Features
+
+1. **Plan & Simulate Mode**: Runs Monte Carlo simulations to model variant performance and calculate target sample sizes required to meet statistical power goals.
+2. **Analyze Real Data Mode**: Perform two-proportion Z-tests with Wald Confidence Intervals on observed conversion data.
+3. **Bayesian Beta-Binomial Inference**: Computes MCMC posterior draws, credible intervals, the probability of B being superior to A, and expected risk (loss) curves.
+4. **Thompson Sampling Bandits**: Simulates dynamic traffic allocation to show how multi-armed bandit routing minimizes regret over customer arrivals.
+5. **Financial Impact Studio**: Combines setup costs, traffic volume, and value-per-conversion to project gross/net ROI and overall business benefits.
+6. **Interactive Visualizations**: High-performance SVG curves representing convergence, posterior probability density functions, and multi-armed bandit allocations.
+7. **Mathematical Rigor Reports**: Generates print-optimized reports detailing the rigorous mathematical formulas behind the calculations.
+
+---
 
 ## Project Structure
 
 ```text
-ab_testing_platform/
-  __init__.py
-  bandits.py
-  bayesian.py
-  formatting.py
-  frequentist.py
-  math_utils.py
-  models.py
-  simulation.py
-  validation.py
-examples/
-  usage_example.py
-tests/
-  test_*.py
+ab_testing_platform/       # Core mathematical and statistical engine
+  bandits.py               # Thompson Sampling multi-armed bandit models
+  bayesian.py              # Bayesian Beta-Binomial conjugate prior engine
+  frequentist.py           # Wald Z-test & power calculations
+  simulation.py            # Monte Carlo simulation utilities
+  models.py                # Core dataclasses and value objects
+dashboard/                 # Django application for the web interface
+  services.py              # Business logic orchestrating simulation/analytics
+  views.py                 # Views for web UI and math rigor reports
+  forms.py                 # Form inputs and validations
+config/                    # Django project configuration settings
+static/                    # Dashboard UI styles (CSS) and graphics
+templates/                 # HTML templates for responsive rendering
+examples/                  # Python-only quickstart script
+tests/                     # Comprehensive unittest suite
 ```
+
+---
 
 ## Requirements
 
+The core statistical engine relies on `numpy` to avoid heavy MCMC frameworks:
+
+- Python 3.12+
+- Django
+- NumPy
+
+Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-Only `numpy` is required. The platform avoids heavy MCMC libraries and does not
-require SciPy.
+---
 
-## Quick Start
+## Local Development Setup
 
-```python
-from ab_testing_platform import (
-    BayesianEngine,
-    ExperimentSimulator,
-    StatsEngine,
-    ThompsonSamplingBandit,
-)
+To run the OptiSim web application on your local machine:
 
-required_n = StatsEngine.required_sample_size_per_variation(
-    baseline_conversion_rate=0.10,
-    minimum_detectable_effect=0.12,
-)
+1. Install dependencies from the virtual environment:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Apply database migrations:
+   ```bash
+   python manage.py migrate
+   ```
+3. Start the Django development server:
+   ```bash
+   python manage.py runserver
+   ```
+4. Access the studio at: `http://127.0.0.1:8000/`
 
-experiment = ExperimentSimulator(random_seed=42).simulate_ab_test(
-    sample_size_per_group=required_n,
-    baseline_conversion_rate=0.10,
-    expected_lift=0.12,
-)
+---
 
-frequentist = StatsEngine.two_proportion_z_test(
-    conversions_a=experiment.conversions_a,
-    sample_size_a=experiment.sample_size_a,
-    conversions_b=experiment.conversions_b,
-    sample_size_b=experiment.sample_size_b,
-)
+## running CLI / Tests
 
-bayesian = BayesianEngine(random_seed=42).analyze(
-    conversions_a=experiment.conversions_a,
-    sample_size_a=experiment.sample_size_a,
-    conversions_b=experiment.conversions_b,
-    sample_size_b=experiment.sample_size_b,
-)
-
-bandit = ThompsonSamplingBandit({"A": 0.10, "B": 0.112}, random_seed=42)
-summary = bandit.run(n_rounds=20_000)
-```
-
-Run the full example:
+To run the Python-only quickstart example:
 
 ```bash
 python examples/usage_example.py
 ```
 
-Run tests with the standard library:
+To run the suite of automated statistical tests:
 
 ```bash
 python -m unittest discover tests
 ```
+
+---
+
+## Vercel Deployment
+
+OptiSim is configured to run on **Vercel** as serverless functions with zero configuration, serving static assets via the Vercel CDN. The settings file defines:
+- `ALLOWED_HOSTS` covering Vercel production and staging domains.
+- `STATIC_ROOT` configured for automatic `collectstatic` execution during Vercel builds.
