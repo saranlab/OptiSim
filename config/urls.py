@@ -1,0 +1,9 @@
+"""URL configuration for the A/B testing web application."""
+
+from __future__ import annotations
+
+from django.urls import include, path
+
+urlpatterns = [
+    path("", include("dashboard.urls")),
+]

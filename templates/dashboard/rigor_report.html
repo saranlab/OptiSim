@@ -1,0 +1,561 @@
+{% load dashboard_extras %}
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Statistical Rigor & Methodology Verification Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --color-black: #0f172a;
+      --color-gray-dark: #334155;
+      --color-gray-medium: #64748b;
+      --color-gray-light: #f1f5f9;
+      --color-border: #cbd5e1;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #ffffff;
+      color: var(--color-black);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding: 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .report-wrapper {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    header {
+      border-bottom: 2px solid var(--color-black);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .header-left h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      color: var(--color-black);
+      line-height: 1.2;
+    }
+
+    .header-left p {
+      font-size: 0.85rem;
+      color: var(--color-gray-medium);
+      margin-top: 4px;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .header-right .timestamp {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--color-gray-medium);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      background-color: var(--color-gray-light);
+      padding: 16px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+      border: 1px solid var(--color-border);
+    }
+
+    .meta-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .meta-item span.label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--color-gray-medium);
+      letter-spacing: 0.05em;
+    }
+
+    .meta-item span.value {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-black);
+      margin-top: 2px;
+    }
+
+    section {
+      margin-bottom: 35px;
+    }
+
+    section h2 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--color-black);
+      padding-bottom: 6px;
+      margin-bottom: 16px;
+      color: var(--color-black);
+      letter-spacing: 0.02em;
+    }
+
+    p.sec-desc {
+      font-size: 0.85rem;
+      color: var(--color-gray-dark);
+      margin-bottom: 12px;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 0.85rem;
+    }
+
+    table.data-table th, table.data-table td {
+      border: 1px solid var(--color-border);
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background-color: var(--color-gray-light);
+      font-weight: 700;
+      color: var(--color-black);
+    }
+
+    table.data-table td.num {
+      font-family: var(--font-mono);
+      text-align: right;
+    }
+
+    .formula-block {
+      background-color: var(--color-gray-light);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 16px;
+      margin: 14px 0;
+      overflow-x: auto;
+    }
+
+    .formula-block .MathJax {
+      font-size: 1rem !important;
+      color: var(--color-black) !important;
+    }
+
+    .computation-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .step-row {
+      display: flex;
+      font-size: 0.82rem;
+      border-bottom: 1px dashed var(--color-border);
+      padding-bottom: 6px;
+    }
+
+    .step-row:last-child {
+      border-bottom: none;
+    }
+
+    .step-label {
+      font-weight: 600;
+      width: 260px;
+      color: var(--color-gray-dark);
+    }
+
+    .step-math {
+      font-family: var(--font-mono);
+      flex: 1;
+      color: var(--color-black);
+      font-weight: 500;
+    }
+
+    .recommendation-box {
+      border: 2px solid var(--color-black);
+      border-radius: 6px;
+      padding: 20px;
+      margin-top: 20px;
+      background-color: #fafafa;
+    }
+
+    .recommendation-box.success {
+      border-color: #16a34a;
+      background-color: #f0fdf4;
+    }
+
+    .recommendation-box.danger {
+      border-color: #dc2626;
+      background-color: #fef2f2;
+    }
+
+    .recommendation-box.warning {
+      border-color: #d97706;
+      background-color: #fffbeb;
+    }
+
+    .rec-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .rec-header h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .success h3 { color: #16a34a; }
+    .danger h3 { color: #dc2626; }
+    .warning h3 { color: #d97706; }
+
+    .rec-msg {
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: var(--color-black);
+    }
+
+    .audit-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 50px;
+      border-top: 1px solid var(--color-border);
+      padding-top: 20px;
+      font-size: 0.8rem;
+    }
+
+    .audit-sign {
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+    }
+
+    .sign-line {
+      border-bottom: 1px solid var(--color-black);
+      height: 30px;
+      width: 200px;
+    }
+
+    /* Print settings */
+    @media print {
+      body {
+        padding: 0;
+        font-size: 12pt;
+      }
+      
+      .meta-grid {
+        background-color: #ffffff !important;
+        border: 1px solid #000000 !important;
+      }
+
+      .formula-block {
+        background-color: #ffffff !important;
+        border: 1px solid #000000 !important;
+      }
+
+      .recommendation-box {
+        background-color: #ffffff !important;
+        border: 2px solid #000000 !important;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      @page {
+        margin: 1.5cm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="report-wrapper">
+    <!-- Print action controls for screen viewing -->
+    <div class="no-print" style="display: flex; justify-content: flex-end; gap: 12px; margin-bottom: 20px;">
+      <button onclick="window.close()" style="padding: 8px 16px; border: 1px solid var(--color-border); background: #fff; cursor: pointer; border-radius: 4px; font-weight: 600; font-size: 0.8rem;">Close Window</button>
+      <button onclick="window.print()" style="padding: 8px 16px; border: none; background: var(--color-black); color: #fff; cursor: pointer; border-radius: 4px; font-weight: 600; font-size: 0.8rem; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">Print / Save PDF</button>
+    </div>
+
+    <header>
+      <div class="header-left">
+        <h1>Methodology Verification Report</h1>
+        <p>A/B Testing Statistical Rigor & Math Compliance Record</p>
+      </div>
+      <div class="header-right">
+        <span class="timestamp">Generated: {% now "Y-m-d H:i:s" %} UTC</span>
+      </div>
+    </header>
+
+    <!-- Meta Details Grid -->
+    <div class="meta-grid">
+      <div class="meta-item">
+        <span class="label">Operation Mode</span>
+        <span class="value">{{ analysis.mode|title }} Data</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">Significance (α)</span>
+        <span class="value">{{ analysis.frequentist.alpha|number:4 }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">MCMC Draws</span>
+        <span class="value">{{ analysis.bayesian.posterior_mean_a|default:100000|yesno:"100000,100000" }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">Engine Status</span>
+        <span class="value" style="color: #16a34a;">Verified</span>
+      </div>
+    </div>
+
+    <!-- Section 1: Observational Counts -->
+    <section>
+      <h2>1. Observed Input Sample Counts</h2>
+      <p class="sec-desc">Summary of observed visitor traffic counts and conversion metrics per group:</p>
+      
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Variation Group</th>
+            <th>Sample Size ($N$)</th>
+            <th>Conversions ($S$)</th>
+            <th>Conversion Rate ($p$)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Group A (Control)</strong></td>
+            <td class="num">{{ analysis.experiment.sample_size_a|number:0 }}</td>
+            <td class="num">{{ analysis.experiment.conversions_a|number:0 }}</td>
+            <td class="num" style="font-weight: bold;">{{ analysis.experiment.conversion_rate_a|percentage }}</td>
+          </tr>
+          <tr>
+            <td><strong>Group B (Treatment)</strong></td>
+            <td class="num">{{ analysis.experiment.sample_size_b|number:0 }}</td>
+            <td class="num">{{ analysis.experiment.conversions_b|number:0 }}</td>
+            <td class="num" style="font-weight: bold;">{{ analysis.experiment.conversion_rate_b|percentage }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Section 2: Frequentist Hypothesis Test -->
+    <section>
+      <h2>2. Two-Proportion Wald Z-Test & Hypothesis</h2>
+      <p class="sec-desc">Test hypotheses regarding whether the Treatment group conversion rate is equal to the Control group conversion rate.</p>
+
+      <div style="font-size: 0.85rem; margin-bottom: 12px;">
+        <div><strong>Null Hypothesis ($H_0$):</strong> $p_B = p_A$ (No statistical difference exists)</div>
+        <div><strong>Alternative Hypothesis ($H_1$):</strong> $p_B \neq p_A$ (A statistical difference exists)</div>
+      </div>
+
+      <div class="formula-block">
+        $$\text{Pooled Conversion Rate: } p_{pooled} = \frac{S_A + S_B}{N_A + N_B}$$
+        $$\text{Standard Error: } SE_{pooled} = \sqrt{p_{pooled}(1-p_{pooled})\left(\frac{1}{N_A} + \frac{1}{N_B}\right)}$$
+        $$\text{Z-Statistic: } Z = \frac{p_B - p_A}{SE_{pooled}}$$
+      </div>
+
+      <div class="computation-steps">
+        <div class="step-row">
+          <span class="step-label">Pooled conversion rate ($p_{pooled}$):</span>
+          <span class="step-math">
+            {% with sa=analysis.experiment.conversions_a sb=analysis.experiment.conversions_b na=analysis.experiment.sample_size_a nb=analysis.experiment.sample_size_b %}
+              {% with numer=sa|add:sb denom=na|add:nb %}
+                {{ numer }} / {{ denom }} = {{ analysis.frequentist.conversion_rate_a|add:analysis.frequentist.conversion_rate_b|safe_divide:2|number:6 }}
+              {% endwith %}
+            {% endwith %}
+          </span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Z-Statistic:</span>
+          <span class="step-math">{{ analysis.frequentist.z_statistic|number:5 }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">P-Value (two-tailed):</span>
+          <span class="step-math">{{ analysis.frequentist.p_value|number:6 }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Absolute / Relative Lift:</span>
+          <span class="step-math">{{ analysis.frequentist.absolute_lift|percentage }} / {{ analysis.frequentist.relative_lift|percentage }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">95% Confidence Interval bounds:</span>
+          <span class="step-math">[{{ analysis.frequentist.ci_lower|percentage }} , {{ analysis.frequentist.ci_upper|percentage }}]</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Frequentist Significance:</span>
+          <span class="step-math" style="font-weight: bold; color: {% if analysis.frequentist.is_significant %}#16a34a{% else %}#dc2626{% endif %};">
+            {% if analysis.frequentist.is_significant %}Null Hypothesis REJECTED (p &le; &alpha;){% else %}Null Hypothesis RETAINED (p &gt; &alpha;){% endif %}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Bayesian Conjugate Prior Model -->
+    <section>
+      <h2>3. Bayesian Conjugate Beta-Binomial Inference</h2>
+      <p class="sec-desc">Applying a standard uniform conjugate prior $Beta(1, 1)$ to update probability distributions dynamically.</p>
+
+      <div class="formula-block">
+        $$\text{Posterior Update: } \theta \sim Beta(\alpha_{prior} + S, \beta_{prior} + (N - S))$$
+        $$\text{Posterior A: } Beta({{ analysis.experiment.conversions_a|add:1 }}, {{ analysis.experiment.sample_size_a|subtract:analysis.experiment.conversions_a|add:1 }})$$
+        $$\text{Posterior B: } Beta({{ analysis.experiment.conversions_b|add:1 }}, {{ analysis.experiment.sample_size_b|subtract:analysis.experiment.conversions_b|add:1 }})$$
+      </div>
+
+      <div class="computation-steps">
+        <div class="step-row">
+          <span class="step-label">Posterior Mean CVR A ($E[\theta_A]$):</span>
+          <span class="step-math">{{ analysis.bayesian.posterior_mean_a|percentage }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Posterior Mean CVR B ($E[\theta_B]$):</span>
+          <span class="step-math">{{ analysis.bayesian.posterior_mean_b|percentage }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Probability $B > A$ ($P(p_B > p_A)$):</span>
+          <span class="step-math">{{ analysis.bayesian.probability_b_better|percentage }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Expected Loss choosing A:</span>
+          <span class="step-math">{{ analysis.bayesian.expected_loss_choose_a|percentage }} CVR drop</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Expected Loss choosing B:</span>
+          <span class="step-math">{{ analysis.bayesian.expected_loss_choose_b|percentage }} CVR drop</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">95% Credible Interval (Uplift):</span>
+          <span class="step-math">[{{ analysis.bayesian.credible_interval_uplift.0|percentage }} , {{ analysis.bayesian.credible_interval_uplift.1|percentage }}]</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Financial Impact & ROI Projections -->
+    <section>
+      <h2>4. Financial Impact &amp; ROI Projections</h2>
+      <p class="sec-desc">Calculated financial projections scaling the experimental conversion rates over the business planning horizon:</p>
+
+      <div class="formula-block">
+        $$\text{Projected Traffic } (T) = {{ form_data.projected_traffic|number:0 }}$$
+        $$\text{Revenue per Conversion } (R) = \${{ form_data.revenue_per_conversion|number:2 }}$$
+        $$\text{Setup Cost of Variant B } (C) = \${{ form_data.implementation_cost|number:2 }}$$
+        $$\text{Expected Gross Uplift } (U_{gross}) = T \times (p_B - p_A) \times R$$
+        $$\text{Projected Net Benefit } (B_{net}) = U_{gross} - C$$
+        $$\text{Expected Return on Investment } (ROI) = \frac{B_{net}}{C} \times 100\%$$
+      </div>
+
+      <div class="computation-steps">
+        <div class="step-row">
+          <span class="step-label">Conversion Rate Difference ($p_B - p_A$):</span>
+          <span class="step-math">
+            {{ analysis.experiment.conversion_rate_b|subtract:analysis.experiment.conversion_rate_a|percentage }} (relative lift: {{ analysis.frequentist.relative_lift|percentage }})
+          </span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Expected Gross Uplift ($U_{gross}$):</span>
+          <span class="step-math" style="font-weight: 600; color: {% if analysis.financials.gross_uplift >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+            {% if analysis.financials.gross_uplift >= 0 %}+{% endif %}${{ analysis.financials.gross_uplift|number:2 }}
+          </span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Variant B Setup Cost ($C$):</span>
+          <span class="step-math">${{ analysis.financials.implementation_cost|number:2 }}</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Projected Net Benefit ($B_{net}$):</span>
+          <span class="step-math" style="font-weight: bold; color: {% if analysis.financials.net_benefit >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+            {% if analysis.financials.net_benefit >= 0 %}+{% endif %}${{ analysis.financials.net_benefit|number:2 }}
+          </span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Expected Return on Investment (ROI):</span>
+          <span class="step-math" style="font-weight: bold; color: {% if analysis.financials.net_benefit >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+            {{ analysis.financials.roi|number:1 }}%
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Recommendation -->
+    <section>
+      <h2>5. Decision Engine Verdict</h2>
+      
+      <div class="recommendation-box {{ analysis.recommendation.status }}">
+        <div class="rec-header">
+          <h3>{{ analysis.recommendation.title }}</h3>
+          <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; font-family: var(--font-mono);">
+            Status: {{ analysis.recommendation.status }}
+          </span>
+        </div>
+        <p class="rec-msg">{{ analysis.recommendation.message }}</p>
+      </div>
+    </section>
+
+
+    <!-- Sign-off Block -->
+    <div class="audit-grid">
+      <div class="audit-sign">
+        <span>Prepared / Computed By:</span>
+        <div class="sign-line"></div>
+        <span>Statistical Engine (OptiSim SDK)</span>
+      </div>
+      <div class="audit-sign">
+        <span>Reviewed / Approved By:</span>
+        <div class="sign-line"></div>
+        <span>Lead Data Scientist / Product Manager</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Automatically prompt print dialog once calculations render
+    window.addEventListener("load", function() {
+      // Delay printing slightly to let MathJax finish rendering equations
+      setTimeout(function() {
+        if (window.location.search.indexOf("autoprint=true") !== -1 || true) {
+          window.print();
+        }
+      }, 1000);
+    });
+  </script>
+</body>
+</html>

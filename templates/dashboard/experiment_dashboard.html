@@ -1,0 +1,2256 @@
+{% load dashboard_extras %}
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OptiSim // A/B Testing & Simulation Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'dashboard/styles.css' %}?v={% now 'U' %}">
+  
+  <!-- MathJax for rendering LaTeX math formulas beautifully -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body>
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner-container">
+      <div class="glow-spinner"></div>
+      <p class="loader-title">Processing Analysis...</p>
+      <p class="loader-subtitle">Running Monte Carlo trials & Bayesian Markov chains</p>
+    </div>
+  </div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-logo">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" fill="url(#logo-grad)" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="logo-grad" x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00f2fe"/>
+                <stop offset="1" stop-color="#4facfe"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="brand-name">OptiSim</span>
+          <span class="brand-badge">PRO STUDIO</span>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <button type="button" id="btn-tutorial" class="btn-tutorial">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Interactive Guide</span>
+        </button>
+
+        <button type="button" id="btn-export-report" class="btn-guide" style="border-color: rgba(172, 38, 255, 0.3);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-purple);">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10 9 9 9 8 9"/>
+          </svg>
+          <span>Export Rigor PDF</span>
+        </button>
+
+        <button type="button" id="btn-guide" class="btn-guide">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+          <span>Methodology Guide</span>
+        </button>
+
+        <div class="header-status">
+          <span class="status-indicator"></span>
+          <span class="status-text">Engine Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+      <!-- Configuration Panel -->
+      <aside class="sidebar">
+        <div class="panel-card">
+          <form id="config-form" method="post" novalidate>
+            {% csrf_token %}
+            {{ form.mode }}
+
+            <div class="panel-header">
+              <div class="panel-title">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <h2>Configuration</h2>
+              </div>
+              <button type="submit" class="btn-submit">
+                <span>Run Analysis</span>
+              </button>
+            </div>
+
+            <!-- Mode Switcher Tabs -->
+            <div class="mode-tab-container">
+              <button type="button" id="tab-simulation" class="mode-tab">Plan & Simulate</button>
+              <button type="button" id="tab-real" class="mode-tab">Analyze Real Data</button>
+            </div>
+
+            {% if form.non_field_errors %}
+              <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+              </div>
+            {% endif %}
+
+            <!-- Group 1: Simulation Core Parameters -->
+            <div class="form-section sim-only-field">
+              <h3 class="section-title">Design Parameters</h3>
+              
+              <div class="field-group">
+                <div class="field-header">
+                  <label for="id_baseline_conversion_rate">Baseline CVR (Group A)</label>
+                  <div class="tooltip" data-text="The historical conversion rate of the control group (expressed as a decimal, e.g. 0.10 for 10%).">?</div>
+                </div>
+                <div class="input-wrapper">
+                  {{ form.baseline_conversion_rate }}
+                  <span class="input-addon">%</span>
+                </div>
+                {% for error in form.baseline_conversion_rate.errors %}
+                  <span class="field-error">{{ error }}</span>
+                {% endfor %}
+              </div>
+
+              <div class="field-group">
+                <div class="field-header">
+                  <label for="id_expected_lift">Expected Lift (Group B)</label>
+                  <div class="tooltip" data-text="The relative increase in conversion rate expected for variant B (e.g. 12.0 for +12% relative lift).">?</div>
+                </div>
+                <div class="input-wrapper">
+                  {{ form.expected_lift }}
+                  <span class="input-addon">%</span>
+                </div>
+                {% for error in form.expected_lift.errors %}
+                  <span class="field-error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            </div>
+
+            <!-- Group 2: Real Observed Data Fields -->
+            <div class="form-section real-only-field">
+              <h3 class="section-title">Group A Data (Control)</h3>
+              
+              <div class="field-grid-half">
+                <div class="field-group">
+                  <div class="field-header">
+                    <label for="id_real_sample_size_a">A Users</label>
+                  </div>
+                  {{ form.real_sample_size_a }}
+                  {% for error in form.real_sample_size_a.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+
+                <div class="field-group">
+                  <div class="field-header">
+                    <label for="id_real_conversions_a">A Conversions</label>
+                  </div>
+                  {{ form.real_conversions_a }}
+                  {% for error in form.real_conversions_a.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <div class="form-section real-only-field">
+              <h3 class="section-title">Group B Data (Variant)</h3>
+
+              <div class="field-grid-half">
+                <div class="field-group">
+                  <div class="field-header">
+                    <label for="id_real_sample_size_b">B Users</label>
+                  </div>
+                  {{ form.real_sample_size_b }}
+                  {% for error in form.real_sample_size_b.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+
+                <div class="field-group">
+                  <div class="field-header">
+                    <label for="id_real_conversions_b">B Conversions</label>
+                  </div>
+                  {{ form.real_conversions_b }}
+                  {% for error in form.real_conversions_b.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 3: Statistical Targets -->
+            <div class="form-section">
+              <h3 class="section-title">Statistical Power</h3>
+
+              <div class="field-grid-half">
+                <div class="field-group">
+                  <div class="field-header">
+                    <label for="id_alpha">Significance (α)</label>
+                    <div class="tooltip" data-text="Type I error rate. Probability of false positive. Typically 0.05.">?</div>
+                  </div>
+                  {{ form.alpha }}
+                  {% for error in form.alpha.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+
+                <div class="field-group sim-only-field">
+                  <div class="field-header">
+                    <label for="id_beta">Power target (1 - β)</label>
+                    <div class="tooltip" data-text="Type II error rate (β). Target power is 1 - β. Standard is β = 0.20 for 80% power.">?</div>
+                  </div>
+                  {{ form.beta }}
+                  {% for error in form.beta.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Group 4: Computation Specs -->
+            <div class="form-section">
+              <h3 class="section-title">Bayesian Calculations</h3>
+
+              <div class="field-grid-half">
+                <div class="field-group">
+                  <div class="field-header">
+                    <label for="id_posterior_samples">MCMC Draws</label>
+                    <div class="tooltip" data-text="Number of Monte Carlo posterior draws for probability calculations.">?</div>
+                  </div>
+                  {{ form.posterior_samples }}
+                  {% for error in form.posterior_samples.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+
+                <div class="field-group sim-only-field">
+                  <div class="field-header">
+                    <label for="id_bandit_rounds">Bandit Rounds</label>
+                    <div class="tooltip" data-text="Total simulated customer arrivals for the Thompson Sampling allocation model.">?</div>
+                  </div>
+                  {{ form.bandit_rounds }}
+                  {% for error in form.bandit_rounds.errors %}
+                    <span class="field-error">{{ error }}</span>
+                  {% endfor %}
+                </div>
+            <!-- Group 5: Financial Projections -->
+            <div class="form-section">
+              <h3 class="section-title">Financial Projections</h3>
+
+              <div class="field-group">
+                <div class="field-header">
+                  <label for="id_revenue_per_conversion">Revenue per Conversion</label>
+                  <div class="tooltip" data-text="The average revenue value generated by a single conversion.">?</div>
+                </div>
+                <div class="input-wrapper">
+                  {{ form.revenue_per_conversion }}
+                  <span class="input-addon">$</span>
+                </div>
+                {% for error in form.revenue_per_conversion.errors %}
+                  <span class="field-error">{{ error }}</span>
+                {% endfor %}
+              </div>
+
+              <div class="field-group" style="margin-top: 12px;">
+                <div class="field-header">
+                  <label for="id_implementation_cost">Setup Cost</label>
+                  <div class="tooltip" data-text="Fixed cost to implement Variant B.">?</div>
+                </div>
+                <div class="input-wrapper">
+                  {{ form.implementation_cost }}
+                  <span class="input-addon">$</span>
+                </div>
+                {% for error in form.implementation_cost.errors %}
+                  <span class="field-error">{{ error }}</span>
+                {% endfor %}
+              </div>
+
+              <div class="field-group" style="margin-top: 12px;">
+                <div class="field-header">
+                  <label for="id_projected_traffic">Projected Users</label>
+                  <div class="tooltip" data-text="Traffic volume to scale the conversion rates over.">?</div>
+                </div>
+                {{ form.projected_traffic }}
+                {% for error in form.projected_traffic.errors %}
+                  <span class="field-error">{{ error }}</span>
+                {% endfor %}
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </aside>
+
+      <!-- Dashboard Results -->
+      <section class="results-container">
+        <!-- Decision Engine Header Recommendation Banner -->
+        <div class="status-header rec-panel status-{{ analysis.recommendation.status }}" style="display: flex; align-items: center; gap: 24px; padding: 20px 24px; border: 1px solid var(--border-subtle); border-radius: 8px; margin-bottom: 24px;">
+          <div class="rec-visual" style="margin-bottom: 0;">
+            {% if analysis.recommendation.status == 'success' %}
+              <div class="rec-status-circle success-circle" style="margin-bottom: 0; width: 48px; height: 48px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
+            {% elif analysis.recommendation.status == 'danger' %}
+              <div class="rec-status-circle danger-circle" style="margin-bottom: 0; width: 48px; height: 48px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </div>
+            {% else %}
+              <div class="rec-status-circle warning-circle" style="margin-bottom: 0; width: 48px; height: 48px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+              </div>
+            {% endif %}
+          </div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <span class="sub-badge" style="background-color: hsla(225, 12%, 18%, 0.6); margin-bottom: 2px;">Decision Engine Recommendation</span>
+              {% if analysis.recommendation.status == 'warning' and analysis.frequentist.is_significant %}
+                <span class="badge badge-warning" style="padding: 2px 8px; font-size: 0.7rem; margin-bottom: 2px;">Significant (Low Power)</span>
+              {% elif analysis.frequentist.is_significant %}
+                <span class="badge badge-success" style="padding: 2px 8px; font-size: 0.7rem; margin-bottom: 2px;">Significant</span>
+              {% else %}
+                <span class="badge badge-warning" style="padding: 2px 8px; font-size: 0.7rem; margin-bottom: 2px;">Inconclusive</span>
+              {% endif %}
+            </div>
+            <h4 class="rec-headline" style="margin-bottom: 4px; font-size: 1.1rem; font-weight: 800;">{{ analysis.recommendation.title }}</h4>
+            <p class="rec-summary-text" style="max-width: 100%; font-size: 0.82rem; margin: 0; line-height: 1.5;">{{ analysis.recommendation.message }}</p>
+          </div>
+        </div>
+
+        <!-- Metrics Hero Grid -->
+        <div id="metrics-grid" class="metrics-grid">
+          <div class="metric-card glow-card">
+            {% if analysis.mode == 'real' %}
+              <div class="metric-header">
+                <span>Total Sample Size</span>
+                <div class="metric-icon code-color-purple">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div class="metric-value">
+                {% with a=analysis.experiment.sample_size_a b=analysis.experiment.sample_size_b %}
+                  {{ a|add:b|number:0 }}
+                {% endwith %}
+              </div>
+              <div class="metric-footer">Total Observed Users</div>
+            {% else %}
+              <div class="metric-header">
+                <span>Required Sample Size</span>
+                <div class="metric-icon code-color-purple">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+              </div>
+              <div class="metric-value">{{ analysis.required_sample_size|number:0 }}</div>
+              <div class="metric-footer">Users per variation (target)</div>
+            {% endif %}
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>{% if analysis.mode == 'real' %}Observed{% else %}Simulated{% endif %} CVR A</span>
+              <span class="variation-badge badge-a">Control</span>
+            </div>
+            <div class="metric-value">{{ analysis.experiment.conversion_rate_a|percentage }}</div>
+            <div class="metric-footer">{{ analysis.experiment.conversions_a|number:0 }} conversions</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>{% if analysis.mode == 'real' %}Observed{% else %}Simulated{% endif %} CVR B</span>
+              <span class="variation-badge badge-b">Treatment</span>
+            </div>
+            <div class="metric-value">{{ analysis.experiment.conversion_rate_b|percentage }}</div>
+            <div class="metric-footer">{{ analysis.experiment.conversions_b|number:0 }} conversions</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span>Probability B > A</span>
+              <div class="metric-icon code-color-green">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+            </div>
+            <div class="metric-value">{{ analysis.bayesian.probability_b_better|percentage }}</div>
+            <div class="metric-footer">Bayesian posterior probability</div>
+          </div>
+        </div>
+
+        <!-- In-Depth Section Grid -->
+        <div class="panels-grid">
+          <!-- Card 1: Data Summary -->
+          <div class="result-panel">
+            <div class="panel-title-row">
+              <h3>Data Summary</h3>
+              <span class="sub-badge">{% if analysis.mode == 'real' %}Observed Data{% else %}Monte Carlo{% endif %}</span>
+            </div>
+            <div class="panel-body">
+              <!-- CVR Comparison Bars -->
+              <div class="visual-progress-block">
+                <div class="progress-item">
+                  <div class="progress-info">
+                    <span>Control (A) CVR</span>
+                    <strong>{{ analysis.experiment.conversion_rate_a|percentage }}</strong>
+                  </div>
+                  <div class="progress-track-wrapper">
+                    <div class="progress-fill fill-control" style="width: {{ analysis.experiment.visual_width_a }}%;"></div>
+                  </div>
+                </div>
+                <div class="progress-item">
+                  <div class="progress-info">
+                    <span>Treatment (B) CVR</span>
+                    <strong>{{ analysis.experiment.conversion_rate_b|percentage }}</strong>
+                  </div>
+                  <div class="progress-track-wrapper">
+                    <div class="progress-fill fill-treatment" style="width: {{ analysis.experiment.visual_width_b }}%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <dl class="info-list">
+                <div class="info-row">
+                  <dt>Group A Users</dt>
+                  <dd>{{ analysis.experiment.sample_size_a|number:0 }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Group B Users</dt>
+                  <dd>{{ analysis.experiment.sample_size_b|number:0 }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Observed Absolute Lift</dt>
+                  <dd class="{% if analysis.frequentist.absolute_lift > 0 %}text-positive{% else %}text-negative{% endif %}">
+                    {{ analysis.frequentist.absolute_lift|percentage }}
+                  </dd>
+                </div>
+                <div class="info-row">
+                  <dt>Observed Relative Lift</dt>
+                  <dd class="{% if analysis.frequentist.relative_lift > 0 %}text-positive{% else %}text-negative{% endif %}">
+                    {{ analysis.frequentist.relative_lift|percentage }}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Card 2: Frequentist Inference -->
+          <div class="result-panel">
+            <div class="panel-title-row">
+              <h3>Frequentist Inference</h3>
+              <span class="sub-badge">Wald Z-Test</span>
+            </div>
+            <div class="panel-body">
+              <!-- Confidence Interval Visualization -->
+              <div class="ci-container">
+                <div class="ci-header">
+                  <span>95% Confidence Interval for Absolute Lift</span>
+                </div>
+                <div class="ci-track">
+                  <!-- Null line -->
+                  <div class="ci-null-line" style="left: {{ analysis.frequentist.visual_zero }}%;" title="Null Hypothesis (0%)"></div>
+                  <!-- Confidence Interval Bar -->
+                  <div class="ci-bar {% if analysis.frequentist.is_significant %}ci-sig-positive{% else %}ci-insig{% endif %}" 
+                       style="left: {{ analysis.frequentist.visual_ci_lower }}%; width: {{ analysis.frequentist.visual_ci_width }}%;">
+                  </div>
+                  <!-- Lift Estimate Marker -->
+                  <div class="ci-marker" style="left: {{ analysis.frequentist.visual_lift }}%;" title="Estimate: {{ analysis.frequentist.absolute_lift|percentage }}"></div>
+                </div>
+                <div class="ci-scale">
+                  <span class="ci-scale-label ci-scale-min" style="left: {{ analysis.frequentist.visual_ci_lower }}%;">{{ analysis.frequentist.ci_lower|percentage }}</span>
+                  <span class="ci-scale-label ci-scale-zero" style="left: {{ analysis.frequentist.visual_zero }}%;">0%</span>
+                  <span class="ci-scale-label ci-scale-max" style="left: {{ analysis.frequentist.visual_ci_upper }}%;">{{ analysis.frequentist.ci_upper|percentage }}</span>
+                </div>
+              </div>
+
+              <dl class="info-list">
+                <div class="info-row">
+                  <dt>Z-Statistic</dt>
+                  <dd class="code-font">{{ analysis.frequentist.z_statistic|number:4 }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>P-Value</dt>
+                  <dd class="code-font">{{ analysis.frequentist.p_value|number:6 }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Significance Threshold</dt>
+                  <dd>α = {{ analysis.frequentist.alpha|number:2 }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Confidence Interval bounds</dt>
+                  <dd>[{{ analysis.frequentist.ci_lower|percentage }} , {{ analysis.frequentist.ci_upper|percentage }}]</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Card 3: Bayesian Model -->
+          <div class="result-panel{% if analysis.mode == 'real' %} full-width-panel{% endif %}">
+            <div class="panel-title-row">
+              <h3>Bayesian Beta-Binomial</h3>
+              <span class="sub-badge">Conjugate Prior</span>
+            </div>
+            <div class="panel-body">
+              <!-- Risk visualizers -->
+              <div class="bayesian-risk-block">
+                <div class="risk-bar-container">
+                  <div class="risk-label-row">
+                    <span>Expected Loss choosing Control (A)</span>
+                    <strong class="risk-value">{{ analysis.bayesian.expected_loss_choose_a|percentage }}</strong>
+                  </div>
+                  <div class="risk-track">
+                    <div class="risk-fill risk-fill-high" style="width: {% widthratio analysis.bayesian.expected_loss_choose_a 0.05 100 %}%;"></div>
+                  </div>
+                </div>
+
+                <div class="risk-bar-container">
+                  <div class="risk-label-row">
+                    <span>Expected Loss choosing Treatment (B)</span>
+                    <strong class="risk-value">{{ analysis.bayesian.expected_loss_choose_b|percentage }}</strong>
+                  </div>
+                  <div class="risk-track">
+                    <div class="risk-fill risk-fill-low" style="width: {% widthratio analysis.bayesian.expected_loss_choose_b 0.05 100 %}%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <dl class="info-list">
+                <div class="info-row">
+                  <dt>Posterior Mean CVR A</dt>
+                  <dd>{{ analysis.bayesian.posterior_mean_a|percentage }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Posterior Mean CVR B</dt>
+                  <dd>{{ analysis.bayesian.posterior_mean_b|percentage }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Prob(B > A)</dt>
+                  <dd class="text-positive">{{ analysis.bayesian.probability_b_better|percentage }}</dd>
+                </div>
+                <div class="info-row">
+                  <dt>95% Credible Interval (Uplift)</dt>
+                  <dd>[{{ analysis.bayesian.credible_interval_uplift.0|percentage }} , {{ analysis.bayesian.credible_interval_uplift.1|percentage }}]</dd>
+                </div>
+              </dl>
+            </div>
+          </div>
+
+          <!-- Card 4: Bandit Simulation (Simulation mode only) -->
+          {% if analysis.mode == 'simulation' %}
+            <div class="result-panel">
+              <div class="panel-title-row">
+                <h3>Bandit Simulation</h3>
+                <span class="sub-badge">Thompson Sampling</span>
+              </div>
+              <div class="panel-body">
+                <!-- Stacked allocation bar -->
+                <div class="allocation-container">
+                  <div class="allocation-title">Dynamic Traffic Allocation</div>
+                  <div class="allocation-track">
+                    <div class="alloc-bar alloc-a" style="width: {{ analysis.bandit.allocation_rates.A|percentage:1 }};" title="Control A: {{ analysis.bandit.allocation_rates.A|percentage }}">
+                      <span>A ({{ analysis.bandit.allocation_rates.A|percentage:0 }})</span>
+                    </div>
+                    <div class="alloc-bar alloc-b" style="width: {{ analysis.bandit.allocation_rates.B|percentage:1 }};" title="Treatment B: {{ analysis.bandit.allocation_rates.B|percentage }}">
+                      <span>B ({{ analysis.bandit.allocation_rates.B|percentage:0 }})</span>
+                    </div>
+                  </div>
+                </div>
+
+                <dl class="info-list">
+                  <div class="info-row">
+                    <dt>Simulated Customer Arrivals</dt>
+                    <dd>{{ form.bandit_rounds.value|number:0 }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Control Pulls / Rewards</dt>
+                    <dd>{{ analysis.bandit.pulls.A|number:0 }} / {{ analysis.bandit.rewards.A|number:0 }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Treatment Pulls / Rewards</dt>
+                    <dd>{{ analysis.bandit.pulls.B|number:0 }} / {{ analysis.bandit.rewards.B|number:0 }}</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Accumulated Regret</dt>
+                    <dd class="text-warning code-font">{{ analysis.bandit.regret|number:2 }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          {% endif %}
+
+        </div>
+
+        <!-- Card 5: Financial Impact Studio -->
+        <div class="result-panel full-width-panel" style="margin-top: 24px; border-color: hsla(145, 80%, 65%, 0.2); background: linear-gradient(180deg, var(--bg-card), hsla(145, 80%, 65%, 0.02));">
+          <div class="panel-title-row">
+            <div>
+              <h3 style="font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: hsl(145, 80%, 65%);">
+                  <rect x="2" y="4" width="20" height="16" rx="2" ry="2" />
+                  <line x1="12" y1="18" x2="12" y2="6" />
+                  <path d="M17 12H7" />
+                </svg>
+                <span>Financial Impact Studio</span>
+              </h3>
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                Expected business returns scaled over projected traffic of <strong>{{ analysis.financials.projected_traffic|number:0 }}</strong> users.
+              </p>
+            </div>
+            <span class="sub-badge" style="background-color: hsla(145, 80%, 65%, 0.15); color: hsl(145, 80%, 65%); border-color: hsla(145, 80%, 65%, 0.3);">Business ROI Projections</span>
+          </div>
+          <div class="panel-body">
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+              
+              <!-- Gross Revenue Uplift -->
+              <div style="background: hsla(225, 20%, 5%, 0.25); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; text-align: center;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Expected Gross Uplift</div>
+                <div style="font-size: 1.4rem; font-weight: 800; font-family: var(--font-mono); margin-top: 8px; color: {% if analysis.financials.gross_uplift >= 0 %}hsl(145, 80%, 65%){% else %}hsl(355, 85%, 55%){% endif %};">
+                  {% if analysis.financials.gross_uplift >= 0 %}+{% endif %}${{ analysis.financials.gross_uplift|number:2 }}
+                </div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;">At ${{ analysis.financials.revenue_per_conversion|number:2 }} / conversion</div>
+              </div>
+
+              <!-- Setup Cost -->
+              <div style="background: hsla(225, 20%, 5%, 0.25); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; text-align: center;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Variant B Setup Cost</div>
+                <div style="font-size: 1.4rem; font-weight: 800; font-family: var(--font-mono); margin-top: 8px; color: var(--text-main);">
+                  ${{ analysis.financials.implementation_cost|number:2 }}
+                </div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;">One-time implementation cost</div>
+              </div>
+
+              <!-- Projected Net Benefit -->
+              <div style="background: hsla(225, 20%, 5%, 0.25); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; text-align: center; border-color: {% if analysis.financials.net_benefit >= 0 %}hsla(145, 80%, 65%, 0.2){% else %}hsla(355, 85%, 55%, 0.2){% endif %};">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Projected Net Benefit</div>
+                <div style="font-size: 1.4rem; font-weight: 800; font-family: var(--font-mono); margin-top: 8px; color: {% if analysis.financials.net_benefit >= 0 %}hsl(145, 80%, 65%){% else %}hsl(355, 85%, 55%){% endif %};">
+                  {% if analysis.financials.net_benefit >= 0 %}+{% endif %}${{ analysis.financials.net_benefit|number:2 }}
+                </div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;">Gross Uplift - Setup Cost</div>
+              </div>
+
+              <!-- ROI -->
+              <div style="background: hsla(225, 20%, 5%, 0.25); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; text-align: center;">
+                <div style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Expected ROI</div>
+                <div style="font-size: 1.4rem; font-weight: 800; font-family: var(--font-mono); margin-top: 8px; color: {% if analysis.financials.net_benefit >= 0 %}hsl(145, 80%, 65%){% else %}hsl(355, 85%, 55%){% endif %};">
+                  {{ analysis.financials.roi|number:1 }}%
+                </div>
+                <div style="font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;">Return on Investment</div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Performance Analytics Panel -->
+        <div class="result-panel full-width-panel">
+          <div class="panel-title-row">
+            <div class="chart-header-group">
+              <h3>Performance Analytics Studio</h3>
+              <div class="chart-tabs">
+                {% if analysis.mode == 'simulation' %}
+                  <button type="button" class="chart-tab active" data-chart="convergence">CVR Convergence</button>
+                  <button type="button" class="chart-tab" data-chart="posterior">Posterior PDF Curves</button>
+                  <button type="button" class="chart-tab" data-chart="bandit">Bandit Regret</button>
+                {% else %}
+                  <button type="button" class="chart-tab active" data-chart="posterior">Posterior PDF Curves</button>
+                {% endif %}
+              </div>
+            </div>
+            <span class="sub-badge">Interactive Chart</span>
+          </div>
+          <div class="panel-body chart-panel-body">
+            <div class="chart-container-relative">
+              <svg id="dashboard-interactive-svg" viewBox="0 0 600 240"></svg>
+              <!-- Interactive Tooltip Overlay -->
+              <div id="chart-tooltip" class="chart-tooltip-box"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Sandbox: CTA Button Color Experiment -->
+        <div class="result-panel full-width-panel sandbox-panel" id="sandbox-container" style="border-color: hsla(272, 85%, 65%, 0.25); background: linear-gradient(180deg, var(--bg-card), hsla(272, 85%, 65%, 0.03));">
+          <div class="panel-title-row">
+            <div>
+              <h3 style="font-size: 0.95rem; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-purple);">
+                  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+                <span>Interactive Sandbox: CTA Button Color Case Study</span>
+              </h3>
+              <p style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                Learn statistical significance by interacting with a live A/B test. 
+                <strong>Control A (Blue button)</strong> has a true conversion rate of <strong>10.0%</strong>, and 
+                <strong>Variant B (Red button)</strong> has a true conversion rate of <strong>13.5%</strong>.
+              </p>
+            </div>
+            <span class="sub-badge">Interactive Simulation</span>
+          </div>
+
+          <div class="panel-body">
+            <div class="sandbox-grid">
+              <!-- Variant A (Control) Card -->
+              <div class="sandbox-card" style="padding: 24px; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; gap: 16px; background: hsla(225, 20%, 5%, 0.25);">
+                <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 8px; height: 8px; background-color: var(--accent-blue); border-radius: 50%; display: inline-block;"></span>
+                  Control A (Blue Button)
+                </h4>
+                
+                <button type="button" id="sandbox-btn-a" class="btn-preview-a" style="min-width: 140px;">Click Me!</button>
+                <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center;">Click the button directly to simulate a single user trial</div>
+
+                <div class="info-list" style="width: 100%; margin-top: 8px;">
+                  <div class="info-row">
+                    <dt>Simulated Visitors ($N_A$)</dt>
+                    <dd id="sandbox-users-a">0</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Simulated Conversions ($S_A$)</dt>
+                    <dd id="sandbox-conv-a" style="color: var(--accent-blue);">0</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Simulated CVR ($p_A$)</dt>
+                    <dd id="sandbox-cvr-a">0.00%</dd>
+                  </div>
+                  <div class="progress-track-wrapper" style="width: 100%; height: 6px; margin: 4px 0 8px 0; background-color: hsl(225, 12%, 18%); border-radius: 999px; overflow: hidden;">
+                    <div id="sandbox-bar-a" class="progress-fill fill-control" style="width: 0%; height: 100%; border-radius: 999px;"></div>
+                  </div>
+                </div>
+
+                <button type="button" id="sandbox-bulk-a" class="btn-guide" style="width: 100%; justify-content: center; margin-top: 8px; border-color: rgba(0, 242, 254, 0.2);">
+                  <span>+100 Simulated Clicks A</span>
+                </button>
+              </div>
+
+              <!-- Variant B (Treatment) Card -->
+              <div class="sandbox-card" style="padding: 24px; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; gap: 16px; background: hsla(225, 20%, 5%, 0.25);">
+                <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 8px; height: 8px; background-color: var(--accent-purple); border-radius: 50%; display: inline-block;"></span>
+                  Variant B (Red Button)
+                </h4>
+                
+                <button type="button" id="sandbox-btn-b" class="btn-preview-b" style="min-width: 140px;">Click Me!</button>
+                <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center;">Click the button directly to simulate a single user trial</div>
+
+                <div class="info-list" style="width: 100%; margin-top: 8px;">
+                  <div class="info-row">
+                    <dt>Simulated Visitors ($N_B$)</dt>
+                    <dd id="sandbox-users-b">0</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Simulated Conversions ($S_B$)</dt>
+                    <dd id="sandbox-conv-b" style="color: var(--accent-purple);">0</dd>
+                  </div>
+                  <div class="info-row">
+                    <dt>Simulated CVR ($p_B$)</dt>
+                    <dd id="sandbox-cvr-b">0.00%</dd>
+                  </div>
+                  <div class="progress-track-wrapper" style="width: 100%; height: 6px; margin: 4px 0 8px 0; background-color: hsl(225, 12%, 18%); border-radius: 999px; overflow: hidden;">
+                    <div id="sandbox-bar-b" class="progress-fill fill-treatment" style="width: 0%; height: 100%; border-radius: 999px;"></div>
+                  </div>
+                </div>
+
+                <button type="button" id="sandbox-bulk-b" class="btn-guide" style="width: 100%; justify-content: center; margin-top: 8px; border-color: rgba(172, 38, 255, 0.2);">
+                  <span>+100 Simulated Clicks B</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Statistical Output -->
+            <div style="background-color: hsl(225, 20%, 5%, 0.4); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; margin-top: 8px; display: flex; flex-direction: column; gap: 12px;">
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+                <div style="text-align: center;">
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Z-Statistic</div>
+                  <div id="sandbox-zstat" style="font-size: 1.25rem; font-weight: 800; font-family: var(--font-mono); margin-top: 4px;">0.0000</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">P-Value</div>
+                  <div id="sandbox-pvalue" style="font-size: 1.25rem; font-weight: 800; font-family: var(--font-mono); margin-top: 4px;">1.000000</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Observed Lift</div>
+                  <div id="sandbox-lift" style="font-size: 1.25rem; font-weight: 800; margin-top: 4px;">0.00%</div>
+                </div>
+              </div>
+
+              <div style="border-top: 1px dotted var(--border-subtle); padding-top: 12px; text-align: center;">
+                <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Statistical Inference State</div>
+                <div id="sandbox-verdict" style="font-size: 0.9rem; font-weight: 700; color: var(--color-warning); margin-top: 4px;">Inconclusive (No data collected yet). Click or add bulk simulations!</div>
+              </div>
+            </div>
+
+            <!-- Global Action Controls -->
+            <div style="display: flex; gap: 16px; margin-top: 8px; justify-content: flex-end;">
+              <button type="button" id="sandbox-reset" class="btn-guide" style="color: var(--color-danger); border-color: rgba(243, 62, 88, 0.2);">
+                <span>Reset Sandbox</span>
+              </button>
+              <button type="button" id="sandbox-apply" class="btn-submit" style="display: flex; align-items: center; gap: 8px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+                <span>Apply Sandbox Data to Dashboard</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- Methodology Help Drawer Component -->
+  <div id="guide-drawer" class="guide-drawer">
+    <div id="drawer-overlay" class="drawer-overlay"></div>
+    <div class="drawer-content">
+      <div class="drawer-header">
+        <div class="drawer-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+          <h3>Methodology Guide</h3>
+        </div>
+        <button type="button" id="close-drawer" class="btn-close-drawer">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="drawer-tabs">
+        <button type="button" class="drawer-tab active" data-target="guide-freq">Frequentist</button>
+        <button type="button" class="drawer-tab" data-target="guide-bayes">Bayesian</button>
+        <button type="button" class="drawer-tab" data-target="guide-bandits">Bandits</button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Frequentist Section -->
+        <div id="guide-freq" class="guide-section active">
+          <h4>Frequentist Z-Test for Proportions</h4>
+          <p class="guide-p">The frequentist approach measures the strength of evidence against a Null Hypothesis ($H_0$), which assumes that Group A (Control) and Group B (Variant) have identical true conversion rates.</p>
+          
+          <!-- Interactive Z-Score Normal Distribution Plot -->
+          <div class="chart-wrapper">
+            <div class="chart-title">Standard Normal Distribution & Z-Score</div>
+            <svg id="z-curve-svg" viewBox="0 0 400 200"></svg>
+            <div class="chart-caption">Shaded red areas represent critical rejection regions ($Z < -Z_{crit}$ or $Z > Z_{crit}$). The blue vertical line is the active test Z-statistic.</div>
+          </div>
+
+          <!-- Symbol Glossary -->
+          <div class="symbol-grid">
+            <div class="symbol-header-row">
+              <span class="sym-col-var">Symbol</span>
+              <span class="sym-col-def">Definition</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$N_A, N_B$</span>
+              <span class="sym-def">Total users/sample sizes per variant</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$p_A, p_B$</span>
+              <span class="sym-def">Observed conversion rates ($\frac{Conversions}{Users}$)</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$p_{pooled}$</span>
+              <span class="sym-def">Overall combined conversion rate across groups</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$\alpha$</span>
+              <span class="sym-def">Significance level (Type I error threshold, e.g. 5%)</span>
+            </div>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-freq">Z-Score (Standard Score)</span>
+            </h5>
+            <p class="guide-sub-p">Measures how many standard deviations the observed difference in conversion rates ($p_B - p_A$) lies away from the expected difference of $0$.</p>
+            <div class="formula-box">
+              $$Z = \frac{p_B - p_A}{\sqrt{p_{pooled}(1-p_{pooled})\left(\frac{1}{N_A} + \frac{1}{N_B}\right)}}$$
+            </div>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-freq">P-Value</span>
+            </h5>
+            <p class="guide-sub-p">The probability of observing a difference as large as (or larger than) the one observed, assuming $H_0$ is true. If $p \le \alpha$, we reject the null hypothesis and declare the result **statistically significant**.</p>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-freq">Wald Confidence Interval</span>
+            </h5>
+            <p class="guide-sub-p">A range of plausible values for the true absolute lift. A $95\%$ Confidence Interval means that if we repeated the experiment multiple times, $95\%$ of computed intervals would contain the true difference.</p>
+            <div class="formula-box">
+              $$CI = (p_B - p_A) \pm Z_{crit} \times \sqrt{\frac{p_A(1-p_A)}{N_A} + \frac{p_B(1-p_B)}{N_B}}$$
+            </div>
+          </div>
+        </div>
+
+        <!-- Bayesian Section -->
+        <div id="guide-bayes" class="guide-section">
+          <h4>Bayesian Beta-Binomial Model</h4>
+          <p class="guide-p">The Bayesian approach models the conversion rates of variants A and B as probability distributions based on observed data.</p>
+          
+          <!-- Live-rendered Posterior PDF Curves -->
+          <div class="chart-wrapper">
+            <div class="chart-title">Live Posterior Density Functions (PDF)</div>
+            <svg id="beta-curves-svg" viewBox="0 0 400 200"></svg>
+            <div class="chart-caption">Probability distributions for Control A (cyan) and Treatment B (purple). Higher overlap means higher uncertainty between variants.</div>
+          </div>
+
+          <!-- Symbol Glossary -->
+          <div class="symbol-grid">
+            <div class="symbol-header-row">
+              <span class="sym-col-var">Symbol</span>
+              <span class="sym-col-def">Definition</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$Beta(\alpha, \beta)$</span>
+              <span class="sym-def">Probability distribution for the conversion rate probability</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$\alpha_{prior}, \beta_{prior}$</span>
+              <span class="sym-def">Starting parameters representing uniform prior belief (e.g. $Beta(1,1)$)</span>
+            </div>
+            <div class="symbol-row">
+              <span class="sym-var">$S, F$</span>
+              <span class="sym-def">Observed Successes (conversions) and Failures (non-conversions)</span>
+            </div>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-bayes">Posterior Update</span>
+            </h5>
+            <p class="guide-sub-p">Since the Beta distribution is conjugate to the Binomial likelihood, we update beliefs directly by adding successes and failures:</p>
+            <div class="formula-box">
+              $$\text{Posterior} = Beta(\alpha_{prior} + S, \beta_{prior} + F)$$
+            </div>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-bayes">Probability B > A</span>
+            </h5>
+            <p class="guide-sub-p">We draw $100,000+$ random samples from both posterior distributions ($p_A$ and $p_B$) and calculate the proportion of samples where $p_B > p_A$. This yields the direct probability that Variant B is better than Control A.</p>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-bayes">Expected Loss (Risk)</span>
+            </h5>
+            <p class="guide-sub-p">Measures the average conversion rate percentage points we expect to lose if we deploy a variant and it turns out to be worse. It helps make safe choices, even when results are not yet significant.</p>
+            <div class="formula-box">
+              $$\text{Loss}_A = E[\max(p_B - p_A, 0)]$$
+            </div>
+          </div>
+        </div>
+
+        <!-- Bandits Section -->
+        <div id="guide-bandits" class="guide-section">
+          <h4>Multi-Armed Bandit Traffic Allocation</h4>
+          <p class="guide-p">Unlike static A/B tests that route $50\%$ of traffic to a lower-performing variant throughout the test, bandits adjust traffic dynamically to maximize total conversions during the test.</p>
+          
+          <!-- Animated Thompson Sampling Flowchart -->
+          <div class="chart-wrapper">
+            <div class="chart-title">Thompson Sampling Reinforcement Loop</div>
+            <div class="bandit-flow-container">
+              <svg id="bandit-loop-svg" viewBox="0 0 400 240"></svg>
+            </div>
+            <div class="chart-caption">Active cyclical process of user arrivals, posterior drawing, traffic assignment, conversion observation, and posterior update.</div>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-bandit">Thompson Sampling</span>
+            </h5>
+            <p class="guide-sub-p">For every customer arrival, the bandit draws a conversion rate sample for each arm from its current posterior Beta distribution. The user is assigned to the arm that yielded the highest drawn sample. Successful conversions increase that arm's posterior $\alpha$, while failures increase $\beta$, automatically routing more subsequent traffic to the superior variation.</p>
+          </div>
+
+          <div class="guide-topic">
+            <h5>
+              <span class="highlight-term label-bandit">Cumulative Regret</span>
+            </h5>
+            <p class="guide-sub-p">Regret is the difference between the expected rewards (conversions) obtained by always choosing the optimal variation and the rewards actually obtained under the bandit allocation strategy.</p>
+            <div class="formula-box">
+              $$\text{Regret} = (p_{\text{best}} \times T) - \sum_{t=1}^T p_{\text{chosen}_t}$$
+            </div>
+            <p class="guide-sub-p">Thompson Sampling guarantees that cumulative regret grows logarithmically rather than linearly over time.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{ analysis.chart_data|json_script:"chart-data" }}
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const form = document.getElementById("config-form");
+      const overlay = document.getElementById("loading-overlay");
+      
+      form.addEventListener("submit", function() {
+        overlay.classList.add("visible");
+      });
+
+      // Tab switcher components
+      const tabSim = document.getElementById("tab-simulation");
+      const tabReal = document.getElementById("tab-real");
+      const modeInput = document.getElementById("id_mode");
+      
+      const simFields = document.querySelectorAll(".sim-only-field");
+      const realFields = document.querySelectorAll(".real-only-field");
+
+      function setMode(mode) {
+        modeInput.value = mode;
+        if (mode === "simulation") {
+          tabSim.classList.add("active");
+          tabReal.classList.remove("active");
+          simFields.forEach(el => el.style.display = "flex");
+          realFields.forEach(el => el.style.display = "none");
+        } else {
+          tabSim.classList.remove("active");
+          tabReal.classList.add("active");
+          simFields.forEach(el => el.style.display = "none");
+          realFields.forEach(el => el.style.display = "flex");
+        }
+      }
+
+      tabSim.addEventListener("click", function() {
+        setMode("simulation");
+      });
+
+      tabReal.addEventListener("click", function() {
+        setMode("real");
+      });
+
+      // Set initial mode from hidden form field
+      setMode(modeInput.value || "simulation");
+
+      // ==========================================
+      // INTERACTIVE DASHBOARD CHART CONTROLLER
+      // ==========================================
+      const chartTabs = document.querySelectorAll(".chart-tab");
+      let activeChartTab = "{{ analysis.mode }}" === "simulation" ? "convergence" : "posterior";
+
+      // Parse chart data from Django template
+      const chartDataElement = document.getElementById("chart-data");
+      const chartData = chartDataElement ? JSON.parse(chartDataElement.textContent) : null;
+
+      function renderDashboardChart(type) {
+        const svg = document.getElementById("dashboard-interactive-svg");
+        const tooltip = document.getElementById("chart-tooltip");
+        if (!svg || !chartData) return;
+        svg.innerHTML = "";
+        tooltip.style.display = "none";
+
+        const width = 600;
+        const height = 240;
+        const paddingLeft = 50;
+        const paddingRight = 30;
+        const paddingTop = 20;
+        const paddingBottom = 40;
+
+        const plotWidth = width - paddingLeft - paddingRight;
+        const plotHeight = height - paddingTop - paddingBottom;
+        const baselineY = height - paddingBottom;
+        const ns = "http://www.w3.org/2000/svg";
+
+        // Grid lines drawing helper
+        function drawGrid(xTicks, yTicks, xMap, yMap, xFormatter, yFormatter) {
+          // Draw horizontal lines
+          for (let yVal of yTicks) {
+            const yCoord = yMap(yVal);
+            const line = document.createElementNS(ns, "line");
+            line.setAttribute("x1", paddingLeft);
+            line.setAttribute("y1", yCoord);
+            line.setAttribute("x2", width - paddingRight);
+            line.setAttribute("y2", yCoord);
+            line.setAttribute("class", "svg-chart-grid");
+            svg.appendChild(line);
+
+            const text = document.createElementNS(ns, "text");
+            text.setAttribute("x", paddingLeft - 8);
+            text.setAttribute("y", yCoord + 4);
+            text.setAttribute("class", "svg-text-axis-label svg-text-right");
+            text.textContent = yFormatter ? yFormatter(yVal) : yVal;
+            svg.appendChild(text);
+          }
+
+          // Draw vertical lines
+          for (let xVal of xTicks) {
+            const xCoord = xMap(xVal);
+            const line = document.createElementNS(ns, "line");
+            line.setAttribute("x1", xCoord);
+            line.setAttribute("y1", paddingTop);
+            line.setAttribute("x2", xCoord);
+            line.setAttribute("y2", baselineY);
+            line.setAttribute("class", "svg-chart-grid");
+            svg.appendChild(line);
+
+            const text = document.createElementNS(ns, "text");
+            text.setAttribute("x", xCoord);
+            text.setAttribute("y", baselineY + 16);
+            text.setAttribute("class", "svg-text-axis-label");
+            text.textContent = xFormatter ? xFormatter(xVal) : xVal;
+            svg.appendChild(text);
+          }
+        }
+
+        // Draw guideline and markers for interactive tooltip
+        const guideline = document.createElementNS(ns, "line");
+        guideline.setAttribute("y1", paddingTop);
+        guideline.setAttribute("y2", baselineY);
+        guideline.setAttribute("class", "svg-chart-guideline");
+        guideline.style.display = "none";
+        svg.appendChild(guideline);
+
+        if (type === "convergence") {
+          const data = chartData.convergence;
+          if (!data || data.length === 0) return;
+
+          const maxSample = data[data.length - 1].sample_size;
+          const maxCvr = Math.max(...data.map(d => Math.max(d.cvr_a, d.cvr_b))) * 1.15 || 0.05;
+
+          const mapX = (size) => paddingLeft + (size / maxSample) * plotWidth;
+          const mapY = (cvr) => baselineY - (cvr / maxCvr) * plotHeight;
+
+          // Ticks
+          const xTicks = [0, Math.round(maxSample * 0.25), Math.round(maxSample * 0.5), Math.round(maxSample * 0.75), maxSample];
+          const yTicks = [0, maxCvr * 0.25, maxCvr * 0.5, maxCvr * 0.75, maxCvr];
+          drawGrid(xTicks, yTicks, mapX, mapY, (x) => x.toLocaleString(), (y) => (y * 100).toFixed(1) + "%");
+
+          // Curves
+          let pointsA = data.map(d => ({ x: mapX(d.sample_size), y: mapY(d.cvr_a) }));
+          let pointsB = data.map(d => ({ x: mapX(d.sample_size), y: mapY(d.cvr_b) }));
+
+          const dA = "M " + pointsA.map(p => `${p.x} ${p.y}`).join(" L ");
+          const dB = "M " + pointsB.map(p => `${p.x} ${p.y}`).join(" L ");
+
+          const dFillA = dA + ` L ${pointsA[pointsA.length - 1].x} ${baselineY} L ${pointsA[0].x} ${baselineY} Z`;
+          const dFillB = dB + ` L ${pointsB[pointsB.length - 1].x} ${baselineY} L ${pointsB[0].x} ${baselineY} Z`;
+
+          // Fills
+          const fillA = document.createElementNS(ns, "path");
+          fillA.setAttribute("d", dFillA);
+          fillA.setAttribute("class", "svg-fill-curve svg-fill-control");
+          svg.appendChild(fillA);
+
+          const fillB = document.createElementNS(ns, "path");
+          fillB.setAttribute("d", dFillB);
+          fillB.setAttribute("class", "svg-fill-curve svg-fill-treatment");
+          svg.appendChild(fillB);
+
+          // Lines
+          const lineA = document.createElementNS(ns, "path");
+          lineA.setAttribute("d", dA);
+          lineA.setAttribute("class", "svg-stroke-curve svg-curve-control");
+          svg.appendChild(lineA);
+
+          const lineB = document.createElementNS(ns, "path");
+          lineB.setAttribute("d", dB);
+          lineB.setAttribute("class", "svg-stroke-curve svg-curve-treatment");
+          svg.appendChild(lineB);
+
+          // Hover dots
+          const dotA = document.createElementNS(ns, "circle");
+          dotA.setAttribute("class", "svg-chart-dot svg-chart-dot-a");
+          dotA.style.display = "none";
+          svg.appendChild(dotA);
+
+          const dotB = document.createElementNS(ns, "circle");
+          dotB.setAttribute("class", "svg-chart-dot svg-chart-dot-b");
+          dotB.style.display = "none";
+          svg.appendChild(dotB);
+
+          // SVG mouse events
+          svg.addEventListener("mousemove", function(e) {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseXScaled = mouseX * (width / rect.width);
+            
+            if (mouseXScaled >= paddingLeft && mouseXScaled <= width - paddingRight) {
+              const pct = (mouseXScaled - paddingLeft) / plotWidth;
+              const idx = Math.max(0, Math.min(data.length - 1, Math.round(pct * (data.length - 1))));
+              const pt = data[idx];
+
+              const xCoord = mapX(pt.sample_size);
+              const yCoordA = mapY(pt.cvr_a);
+              const yCoordB = mapY(pt.cvr_b);
+
+              guideline.setAttribute("x1", xCoord);
+              guideline.setAttribute("x2", xCoord);
+              guideline.style.display = "";
+
+              dotA.setAttribute("cx", xCoord);
+              dotA.setAttribute("cy", yCoordA);
+              dotA.style.display = "";
+
+              dotB.setAttribute("cx", xCoord);
+              dotB.setAttribute("cy", yCoordB);
+              dotB.style.display = "";
+
+              const liftVal = pt.cvr_a > 0 ? ((pt.cvr_b - pt.cvr_a) / pt.cvr_a * 100) : 0.0;
+              const liftText = liftVal >= 0 ? `+${liftVal.toFixed(2)}%` : `${liftVal.toFixed(2)}%`;
+              tooltip.innerHTML = `
+                <div style="font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; margin-bottom: 4px;">Sample Size: ${pt.sample_size.toLocaleString()}</div>
+                <div><span style="color: var(--accent-blue);">●</span> Control A: ${(pt.cvr_a * 100).toFixed(2)}%</div>
+                <div><span style="color: var(--accent-purple);">●</span> Variant B: ${(pt.cvr_b * 100).toFixed(2)}%</div>
+                <div style="font-weight: 600; margin-top: 4px;">Lift: <span class="${liftVal >= 0 ? 'text-positive' : 'text-negative'}">${liftText}</span></div>
+              `;
+              
+              tooltip.style.left = (e.clientX - rect.left) + "px";
+              tooltip.style.top = (e.clientY - rect.top) + "px";
+              tooltip.style.display = "block";
+            } else {
+              guideline.style.display = "none";
+              dotA.style.display = "none";
+              dotB.style.display = "none";
+              tooltip.style.display = "none";
+            }
+          });
+
+          svg.addEventListener("mouseleave", function() {
+            guideline.style.display = "none";
+            dotA.style.display = "none";
+            dotB.style.display = "none";
+            tooltip.style.display = "none";
+          });
+
+        } else if (type === "bandit") {
+          const data = chartData.bandit;
+          if (!data || data.length === 0) return;
+
+          const maxRound = data[data.length - 1].round;
+          const maxRegret = Math.max(...data.map(d => d.regret)) * 1.15 || 10;
+
+          const mapX = (rnd) => paddingLeft + (rnd / maxRound) * plotWidth;
+          const mapY = (reg) => baselineY - (reg / maxRegret) * plotHeight;
+
+          // Draw Grid
+          const xTicks = [0, Math.round(maxRound * 0.25), Math.round(maxRound * 0.5), Math.round(maxRound * 0.75), maxRound];
+          const yTicks = [0, maxRegret * 0.25, maxRegret * 0.5, maxRegret * 0.75, maxRegret];
+          drawGrid(xTicks, yTicks, mapX, mapY, (x) => x.toLocaleString(), (y) => y.toFixed(1));
+
+          // Draw Regret Curve
+          let points = data.map(d => ({ x: mapX(d.round), y: mapY(d.regret) }));
+          const dCurve = "M " + points.map(p => `${p.x} ${p.y}`).join(" L ");
+          const dFill = dCurve + ` L ${points[points.length - 1].x} ${baselineY} L ${points[0].x} ${baselineY} Z`;
+
+          const fill = document.createElementNS(ns, "path");
+          fill.setAttribute("d", dFill);
+          fill.setAttribute("class", "svg-fill-curve");
+          fill.setAttribute("style", "fill: var(--color-warning); opacity: 0.08;");
+          svg.appendChild(fill);
+
+          const line = document.createElementNS(ns, "path");
+          line.setAttribute("d", dCurve);
+          line.setAttribute("class", "svg-stroke-curve");
+          line.setAttribute("style", "stroke: var(--color-warning); stroke-width: 2.5;");
+          svg.appendChild(line);
+
+          // Dot
+          const dot = document.createElementNS(ns, "circle");
+          dot.setAttribute("class", "svg-chart-dot svg-chart-dot-bandit");
+          dot.style.display = "none";
+          svg.appendChild(dot);
+
+          svg.addEventListener("mousemove", function(e) {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseXScaled = mouseX * (width / rect.width);
+            
+            if (mouseXScaled >= paddingLeft && mouseXScaled <= width - paddingRight) {
+              const pct = (mouseXScaled - paddingLeft) / plotWidth;
+              const idx = Math.max(0, Math.min(data.length - 1, Math.round(pct * (data.length - 1))));
+              const pt = data[idx];
+
+              const xCoord = mapX(pt.round);
+              const yCoord = mapY(pt.regret);
+
+              guideline.setAttribute("x1", xCoord);
+              guideline.setAttribute("x2", xCoord);
+              guideline.style.display = "";
+
+              dot.setAttribute("cx", xCoord);
+              dot.setAttribute("cy", yCoord);
+              dot.style.display = "";
+
+              tooltip.innerHTML = `
+                <div style="font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; margin-bottom: 4px;">Simulation Round: ${pt.round.toLocaleString()}</div>
+                <div><span style="color: var(--color-warning);">●</span> Accumulated Regret: <strong>${pt.regret.toFixed(2)}</strong></div>
+                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;">Lower regret growth rate indicates faster learning by Thompson Sampling.</div>
+              `;
+              
+              tooltip.style.left = (e.clientX - rect.left) + "px";
+              tooltip.style.top = (e.clientY - rect.top) + "px";
+              tooltip.style.display = "block";
+            } else {
+              guideline.style.display = "none";
+              dot.style.display = "none";
+              tooltip.style.display = "none";
+            }
+          });
+
+          svg.addEventListener("mouseleave", function() {
+            guideline.style.display = "none";
+            dot.style.display = "none";
+            tooltip.style.display = "none";
+          });
+
+        } else if (type === "posterior") {
+          const pData = chartData.posterior;
+          if (!pData) return;
+
+          const convA = pData.conv_a;
+          const sizeA = pData.size_a;
+          const convB = pData.conv_b;
+          const sizeB = pData.size_b;
+
+          const a_A = 1 + convA;
+          const b_A = 1 + sizeA - convA;
+          const a_B = 1 + convB;
+          const b_B = 1 + sizeB - convB;
+
+          const meanA = a_A / (a_A + b_A);
+          const meanB = a_B / (a_B + b_B);
+
+          const sdA = Math.sqrt((a_A * b_A) / (Math.pow(a_A + b_A, 2) * (a_A + b_A + 1)));
+          const sdB = Math.sqrt((a_B * b_B) / (Math.pow(a_B + b_B, 2) * (a_B + b_B + 1)));
+
+          const plotMin = Math.max(0.0, Math.min(meanA - 3.5 * sdA, meanB - 3.5 * sdB));
+          const plotMax = Math.min(1.0, Math.max(meanA + 3.5 * sdA, meanB + 3.5 * sdB));
+          const range = plotMax - plotMin;
+
+          function logBetaPDF(x, a, b, maxLog) {
+            if (x <= 0 || x >= 1) return -1000;
+            return (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - maxLog;
+          }
+
+          const modeA = (a_A - 1) / (a_A + b_A - 2);
+          const modeB = (a_B - 1) / (a_B + b_B - 2);
+
+          const maxLogA = (a_A - 1) * Math.log(modeA) + (b_A - 1) * Math.log(1 - modeA);
+          const maxLogB = (a_B - 1) * Math.log(modeB) + (b_B - 1) * Math.log(1 - modeB);
+
+          const mapX = (val) => paddingLeft + ((val - plotMin) / range) * plotWidth;
+          const mapY = (yVal) => baselineY - yVal * plotHeight;
+
+          // Ticks
+          const xTicks = [plotMin, plotMin + range * 0.25, plotMin + range * 0.5, plotMin + range * 0.75, plotMax];
+          const yTicks = [0, 0.1, 0.2, 0.3, 0.4];
+          drawGrid(xTicks, yTicks, mapX, mapY, (x) => (x * 100).toFixed(2) + "%", (y) => (y * 100).toFixed(0) + "%");
+
+          // Curves
+          let pointsA = [];
+          let pointsB = [];
+          const steps = 100;
+          const delta = range / steps;
+
+          for (let i = 0; i <= steps; i++) {
+            const x = plotMin + i * delta;
+            const yA = Math.exp(logBetaPDF(x, a_A, b_A, maxLogA)) * 0.4;
+            const yB = Math.exp(logBetaPDF(x, a_B, b_B, maxLogB)) * 0.4;
+
+            pointsA.push({ x: mapX(x), y: mapY(yA) });
+            pointsB.push({ x: mapX(x), y: mapY(yB) });
+          }
+
+          const dCurveA = "M " + pointsA.map(p => `${p.x} ${p.y}`).join(" L ");
+          const dCurveB = "M " + pointsB.map(p => `${p.x} ${p.y}`).join(" L ");
+
+          const dFillA = dCurveA + ` L ${pointsA[pointsA.length - 1].x} ${baselineY} L ${pointsA[0].x} ${baselineY} Z`;
+          const dFillB = dCurveB + ` L ${pointsB[pointsB.length - 1].x} ${baselineY} L ${pointsB[0].x} ${baselineY} Z`;
+
+          // Fills
+          const fillA = document.createElementNS(ns, "path");
+          fillA.setAttribute("d", dFillA);
+          fillA.setAttribute("class", "svg-fill-curve svg-fill-control");
+          svg.appendChild(fillA);
+
+          const fillB = document.createElementNS(ns, "path");
+          fillB.setAttribute("d", dFillB);
+          fillB.setAttribute("class", "svg-fill-curve svg-fill-treatment");
+          svg.appendChild(fillB);
+
+          // Lines
+          const lineA = document.createElementNS(ns, "path");
+          lineA.setAttribute("d", dCurveA);
+          lineA.setAttribute("class", "svg-stroke-curve svg-curve-control");
+          svg.appendChild(lineA);
+
+          const lineB = document.createElementNS(ns, "path");
+          lineB.setAttribute("d", dCurveB);
+          lineB.setAttribute("class", "svg-stroke-curve svg-curve-treatment");
+          svg.appendChild(lineB);
+
+          // Dots
+          const dotA = document.createElementNS(ns, "circle");
+          dotA.setAttribute("class", "svg-chart-dot svg-chart-dot-a");
+          dotA.style.display = "none";
+          svg.appendChild(dotA);
+
+          const dotB = document.createElementNS(ns, "circle");
+          dotB.setAttribute("class", "svg-chart-dot svg-chart-dot-b");
+          dotB.style.display = "none";
+          svg.appendChild(dotB);
+
+          svg.addEventListener("mousemove", function(e) {
+            const rect = svg.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseXScaled = mouseX * (width / rect.width);
+            
+            if (mouseXScaled >= paddingLeft && mouseXScaled <= width - paddingRight) {
+              const pct = (mouseXScaled - paddingLeft) / plotWidth;
+              const xVal = plotMin + pct * range;
+
+              const yA = Math.exp(logBetaPDF(xVal, a_A, b_A, maxLogA)) * 0.4;
+              const yB = Math.exp(logBetaPDF(xVal, a_B, b_B, maxLogB)) * 0.4;
+
+              const xCoord = mapX(xVal);
+              const yCoordA = mapY(yA);
+              const yCoordB = mapY(yB);
+
+              guideline.setAttribute("x1", xCoord);
+              guideline.setAttribute("x2", xCoord);
+              guideline.style.display = "";
+
+              dotA.setAttribute("cx", xCoord);
+              dotA.setAttribute("cy", yCoordA);
+              dotA.style.display = "";
+
+              dotB.setAttribute("cx", xCoord);
+              dotB.setAttribute("cy", yCoordB);
+              dotB.style.display = "";
+
+              tooltip.innerHTML = `
+                <div style="font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 4px; margin-bottom: 4px;">Conversion Rate: ${(xVal * 100).toFixed(3)}%</div>
+                <div><span style="color: var(--accent-blue);">●</span> Control A Density: <strong>${(yA * 250).toFixed(1)}</strong></div>
+                <div><span style="color: var(--accent-purple);">●</span> Variant B Density: <strong>${(yB * 250).toFixed(1)}</strong></div>
+              `;
+              
+              tooltip.style.left = (e.clientX - rect.left) + "px";
+              tooltip.style.top = (e.clientY - rect.top) + "px";
+              tooltip.style.display = "block";
+            } else {
+              guideline.style.display = "none";
+              dotA.style.display = "none";
+              dotB.style.display = "none";
+              tooltip.style.display = "none";
+            }
+          });
+
+          svg.addEventListener("mouseleave", function() {
+            guideline.style.display = "none";
+            dotA.style.display = "none";
+            dotB.style.display = "none";
+            tooltip.style.display = "none";
+          });
+        }
+      }
+
+      chartTabs.forEach(tab => {
+        tab.addEventListener("click", function() {
+          chartTabs.forEach(t => t.classList.remove("active"));
+          this.classList.add("active");
+          activeChartTab = this.getAttribute("data-chart");
+          renderDashboardChart(activeChartTab);
+        });
+      });
+
+      renderDashboardChart(activeChartTab);
+
+      // ==========================================
+      // INTERACTIVE GUIDED TUTORIAL SYSTEM (SPOTLIGHT)
+      // ==========================================
+      const tutorialSteps = [
+        {
+          elementId: "config-form",
+          title: "1. Configuration Studio",
+          content: "This panel is where you configure your test constraints. In Simulation mode, set target baseline conversions and expected lift. In Real mode, input observed sample sizes and conversions.",
+          position: "right"
+        },
+        {
+          elementId: "tab-simulation",
+          title: "2. Operations Mode",
+          content: "Use these tabs to switch operations. 'Plan & Simulate' runs dynamic Monte Carlo tests. 'Analyze Real Data' lets you enter your actual numbers.",
+          position: "right"
+        },
+        {
+          elementId: "metrics-grid",
+          title: "3. Studio KPI Summary",
+          content: "Get immediate values of required sample size, conversion rates, and the Bayesian probability that Treatment (B) outperforms Control (A).",
+          position: "bottom"
+        },
+        {
+          elementId: "dashboard-interactive-svg",
+          title: "4. Performance Analytics Studio",
+          content: "Hover over this chart to track convergence timeline in real time, view overlapping Beta distributions, or see regret optimization curves.",
+          position: "top"
+        },
+        {
+          elementId: "btn-guide",
+          title: "5. Mathematical Foundations",
+          content: "Click this book icon to open the sliding Methodology Guide drawer at any time. It includes visual Normal tails, Beta distributions, and Thompson Sampling bandit reinforcement loops.",
+          position: "left"
+        },
+        {
+          elementId: "sandbox-container",
+          title: "6. Educational Sandbox",
+          content: "Interact with a live A/B test simulation! Click the preview buttons or run bulk clicks to watch conversion rates converge, compute real-time P-values, and sync the results to the main dashboard.",
+          position: "top"
+        }
+      ];
+
+      let currentTutorialStep = 0;
+      let tutorialActive = false;
+
+      const btnTutorial = document.getElementById("btn-tutorial");
+      
+      // Create tooltip DOM dynamically
+      const tooltipEl = document.createElement("div");
+      tooltipEl.className = "tutorial-tooltip";
+      tooltipEl.style.display = "none";
+      document.body.appendChild(tooltipEl);
+
+      function showStep(stepIndex) {
+        // Clear previous highlights
+        document.querySelectorAll(".tutorial-highlight").forEach(el => {
+          el.classList.remove("tutorial-highlight");
+        });
+
+        if (stepIndex < 0 || stepIndex >= tutorialSteps.length) {
+          endTutorial();
+          return;
+        }
+
+        currentTutorialStep = stepIndex;
+        const step = tutorialSteps[stepIndex];
+        const targetEl = document.getElementById(step.elementId);
+        
+        if (!targetEl) {
+          showStep(stepIndex + 1);
+          return;
+        }
+
+        // Highlight element
+        targetEl.classList.add("tutorial-highlight");
+        targetEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Position tooltip card relative to targetEl
+        const rect = targetEl.getBoundingClientRect();
+        
+        let top = 0;
+        let left = 0;
+
+        if (step.position === "right") {
+          left = rect.right + 20;
+          top = rect.top + window.scrollY + (rect.height / 2) - 100;
+        } else if (step.position === "left") {
+          left = rect.left - 340;
+          top = rect.top + window.scrollY + (rect.height / 2) - 100;
+        } else if (step.position === "bottom") {
+          left = rect.left + (rect.width / 2) - 160;
+          top = rect.bottom + window.scrollY + 20;
+        } else if (step.position === "top") {
+          left = rect.left + (rect.width / 2) - 160;
+          top = rect.top + window.scrollY - 180;
+        }
+
+        // Keep tooltip inside screen bounds
+        left = Math.max(20, Math.min(window.innerWidth - 360, left));
+        top = Math.max(20, top);
+
+        tooltipEl.style.left = left + "px";
+        tooltipEl.style.top = top + "px";
+        tooltipEl.style.display = "flex";
+
+        // Render card content
+        tooltipEl.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+            <h4 style="font-weight: 800; font-size: 0.85rem; color: var(--accent-blue); text-transform: uppercase; letter-spacing: 0.05em;">${step.title}</h4>
+            <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 700;">${stepIndex + 1}/${tutorialSteps.length}</span>
+          </div>
+          <p style="font-size: 0.78rem; line-height: 1.5; color: var(--text-muted); margin: 4px 0;">${step.content}</p>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; gap: 8px;">
+            <button type="button" id="tut-prev" class="btn-guide" style="padding: 4px 10px; font-size: 0.7rem; margin: 0; min-width: 60px;" ${stepIndex === 0 ? 'disabled style="opacity:0.3; cursor:not-allowed;"' : ''}>Prev</button>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" id="tut-exit" class="btn-guide" style="padding: 4px 10px; font-size: 0.7rem; margin: 0; color: var(--color-danger); border-color: rgba(243, 62, 88, 0.2);">Exit</button>
+              <button type="button" id="tut-next" class="btn-submit" style="padding: 4px 12px; font-size: 0.7rem; margin: 0; box-shadow: none; min-width: 60px;">${stepIndex === tutorialSteps.length - 1 ? 'Finish' : 'Next'}</button>
+            </div>
+          </div>
+        `;
+
+        // Tooltip Button Listeners
+        if (stepIndex > 0) {
+          document.getElementById("tut-prev").addEventListener("click", () => showStep(stepIndex - 1));
+        }
+        document.getElementById("tut-exit").addEventListener("click", endTutorial);
+        document.getElementById("tut-next").addEventListener("click", () => showStep(stepIndex + 1));
+      }
+
+      function startTutorial() {
+        tutorialActive = true;
+        showStep(0);
+      }
+
+      function endTutorial() {
+        tutorialActive = false;
+        tooltipEl.style.display = "none";
+        document.querySelectorAll(".tutorial-highlight").forEach(el => {
+          el.classList.remove("tutorial-highlight");
+        });
+      }
+
+      if (btnTutorial) {
+        btnTutorial.addEventListener("click", startTutorial);
+      }
+
+      // Help Drawer Toggle Logic
+      const btnGuide = document.getElementById("btn-guide");
+      const closeDrawer = document.getElementById("close-drawer");
+      const drawerOverlay = document.getElementById("drawer-overlay");
+      const guideDrawer = document.getElementById("guide-drawer");
+
+      function openHelpDrawer() {
+        guideDrawer.classList.add("open");
+        document.body.style.overflow = "hidden"; // Prevent background scroll
+        
+        // Render SVGs upon opening the drawer to ensure layout transitions have completed
+        setTimeout(renderInteractiveCharts, 100);
+      }
+
+      function closeHelpDrawer() {
+        guideDrawer.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      btnGuide.addEventListener("click", openHelpDrawer);
+      closeDrawer.addEventListener("click", closeHelpDrawer);
+      drawerOverlay.addEventListener("click", closeHelpDrawer);
+
+      // Drawer Tab Switching Logic
+      const drawerTabs = document.querySelectorAll(".drawer-tab");
+      const guideSections = document.querySelectorAll(".guide-section");
+
+      drawerTabs.forEach(tab => {
+        tab.addEventListener("click", function() {
+          // Remove active classes
+          drawerTabs.forEach(t => t.classList.remove("active"));
+          guideSections.forEach(s => s.classList.remove("active"));
+
+          // Add active state to current elements
+          this.classList.add("active");
+          const targetId = this.getAttribute("data-target");
+          document.getElementById(targetId).classList.add("active");
+          
+          // Re-render curves when changing tabs
+          setTimeout(renderInteractiveCharts, 50);
+        });
+      });
+
+      /* ==========================================
+         INTERACTIVE SVG DRAWING SCRIPTS (PRO LAB)
+         ========================================== */
+      function renderInteractiveCharts() {
+        // Standard parameters from view variables
+        const zStat = parseFloat("{{ analysis.frequentist.z_statistic|escapejs }}") || 0.0;
+        const alpha = parseFloat("{{ analysis.frequentist.alpha|escapejs }}") || 0.05;
+        
+        const convA = parseInt("{{ analysis.experiment.conversions_a|escapejs }}") || 100;
+        const sizeA = parseInt("{{ analysis.experiment.sample_size_a|escapejs }}") || 1000;
+        const convB = parseInt("{{ analysis.experiment.conversions_b|escapejs }}") || 120;
+        const sizeB = parseInt("{{ analysis.experiment.sample_size_b|escapejs }}") || 1000;
+
+        renderZCurve(zStat, alpha);
+        renderBetaCurves(convA, sizeA, convB, sizeB);
+        renderBanditLoop();
+      }
+
+      // 1. Z-Score Curve Plotter
+      function renderZCurve(zStat, alpha) {
+        const svg = document.getElementById("z-curve-svg");
+        if (!svg) return;
+        svg.innerHTML = "";
+
+        const width = 400;
+        const height = 200;
+        const padding = 20;
+        
+        const plotWidth = width - 2 * padding;
+        const plotHeight = height - 2 * padding;
+        const baselineY = height - padding;
+        
+        // Critical Z threshold approximation
+        let zCrit = 1.96;
+        if (alpha <= 0.001) zCrit = 3.29;
+        else if (alpha <= 0.01) zCrit = 2.58;
+        else if (alpha <= 0.05) zCrit = 1.96;
+        else if (alpha <= 0.10) zCrit = 1.645;
+
+        // Normal PDF equation
+        function normPDF(x) {
+          return (1 / Math.sqrt(2 * Math.PI)) * Math.exp(-0.5 * x * x);
+        }
+
+        // Map stats X [-4.5, 4.5] -> SVG X coord
+        function mapX(xVal) {
+          return padding + ((xVal + 4.5) / 9.0) * plotWidth;
+        }
+
+        // Map stats Y [0, 0.45] -> SVG Y coord
+        function mapY(yVal) {
+          return baselineY - (yVal / 0.42) * plotHeight;
+        }
+
+        // Generate main curve path
+        let points = [];
+        for (let x = -4.5; x <= 4.5; x += 0.05) {
+          points.push({ x: mapX(x), y: mapY(normPDF(x)) });
+        }
+        
+        const dCurve = "M " + points.map(p => `${p.x} ${p.y}`).join(" L ");
+
+        // Generate shaded rejection region paths
+        let leftTailPoints = [];
+        leftTailPoints.push({ x: mapX(-4.5), y: baselineY });
+        for (let x = -4.5; x <= -zCrit; x += 0.05) {
+          leftTailPoints.push({ x: mapX(x), y: mapY(normPDF(x)) });
+        }
+        leftTailPoints.push({ x: mapX(-zCrit), y: baselineY });
+        const dLeftTail = "M " + leftTailPoints.map(p => `${p.x} ${p.y}`).join(" L ") + " Z";
+
+        let rightTailPoints = [];
+        rightTailPoints.push({ x: mapX(zCrit), y: baselineY });
+        for (let x = zCrit; x <= 4.5; x += 0.05) {
+          rightTailPoints.push({ x: mapX(x), y: mapY(normPDF(x)) });
+        }
+        rightTailPoints.push({ x: mapX(4.5), y: baselineY });
+        const dRightTail = "M " + rightTailPoints.map(p => `${p.x} ${p.y}`).join(" L ") + " Z";
+
+        // Draw elements in SVG
+        const ns = "http://www.w3.org/2000/svg";
+        
+        // Critical areas shaded red
+        const leftShape = document.createElementNS(ns, "path");
+        leftShape.setAttribute("d", dLeftTail);
+        leftShape.setAttribute("class", "svg-fill-tail");
+        svg.appendChild(leftShape);
+
+        const rightShape = document.createElementNS(ns, "path");
+        rightShape.setAttribute("d", dRightTail);
+        rightShape.setAttribute("class", "svg-fill-tail");
+        svg.appendChild(rightShape);
+
+        // Baseline X-axis
+        const axis = document.createElementNS(ns, "line");
+        axis.setAttribute("x1", padding);
+        axis.setAttribute("y1", baselineY);
+        axis.setAttribute("x2", width - padding);
+        axis.setAttribute("y2", baselineY);
+        axis.setAttribute("class", "svg-stroke-axis");
+        svg.appendChild(axis);
+
+        // PDF Normal curve line
+        const curvePath = document.createElementNS(ns, "path");
+        curvePath.setAttribute("d", dCurve);
+        curvePath.setAttribute("class", "svg-stroke-curve");
+        svg.appendChild(curvePath);
+
+        // Vertical line at current Z-Score
+        const zCoordX = mapX(Math.max(-4.4, Math.min(4.4, zStat)));
+        const zLine = document.createElementNS(ns, "line");
+        zLine.setAttribute("x1", zCoordX);
+        zLine.setAttribute("y1", baselineY);
+        zLine.setAttribute("x2", zCoordX);
+        zLine.setAttribute("y2", mapY(normPDF(Math.max(-4.4, Math.min(4.4, zStat)))) - 15);
+        zLine.setAttribute("class", "svg-stroke-zline");
+        svg.appendChild(zLine);
+
+        // Z-score text indicator
+        const zText = document.createElementNS(ns, "text");
+        zText.setAttribute("x", zCoordX);
+        zText.setAttribute("y", mapY(normPDF(Math.max(-4.4, Math.min(4.4, zStat)))) - 22);
+        zText.setAttribute("class", "svg-text-zlabel");
+        zText.textContent = `Z = ${zStat.toFixed(3)}`;
+        svg.appendChild(zText);
+
+        // Grid critical values markers
+        const val0Text = document.createElementNS(ns, "text");
+        val0Text.setAttribute("x", mapX(0));
+        val0Text.setAttribute("y", baselineY + 14);
+        val0Text.setAttribute("class", "svg-text-axis-label");
+        val0Text.textContent = "0";
+        svg.appendChild(val0Text);
+
+        const valCritLText = document.createElementNS(ns, "text");
+        valCritLText.setAttribute("x", mapX(-zCrit));
+        valCritLText.setAttribute("y", baselineY + 14);
+        valCritLText.setAttribute("class", "svg-text-axis-label svg-text-red");
+        valCritLText.textContent = `-${zCrit.toFixed(2)}`;
+        svg.appendChild(valCritLText);
+
+        const valCritRText = document.createElementNS(ns, "text");
+        valCritRText.setAttribute("x", mapX(zCrit));
+        valCritRText.setAttribute("y", baselineY + 14);
+        valCritRText.setAttribute("class", "svg-text-axis-label svg-text-red");
+        valCritRText.textContent = `+${zCrit.toFixed(2)}`;
+        svg.appendChild(valCritRText);
+      }
+
+      // 2. Bayesian Beta Posterior PDF Curves Plotter
+      function renderBetaCurves(convA, sizeA, convB, sizeB) {
+        const svg = document.getElementById("beta-curves-svg");
+        if (!svg) return;
+        svg.innerHTML = "";
+
+        const width = 400;
+        const height = 200;
+        const padding = 20;
+        const plotWidth = width - 2 * padding;
+        const plotHeight = height - 2 * padding;
+        const baselineY = height - padding;
+
+        // Posteriors parameters using Uniform Beta(1,1) priors
+        const a_A = 1 + convA;
+        const b_A = 1 + sizeA - convA;
+        const a_B = 1 + convB;
+        const b_B = 1 + sizeB - convB;
+
+        // Mean and SD calculations
+        const meanA = a_A / (a_A + b_A);
+        const meanB = a_B / (a_B + b_B);
+
+        const sdA = Math.sqrt((a_A * b_A) / (Math.pow(a_A + b_A, 2) * (a_A + b_A + 1)));
+        const sdB = Math.sqrt((a_B * b_B) / (Math.pow(a_B + b_B, 2) * (a_B + b_B + 1)));
+
+        // Bound plotting range between 3.5 SDs
+        const plotMin = Math.max(0.0, Math.min(meanA - 3.5 * sdA, meanB - 3.5 * sdB));
+        const plotMax = Math.min(1.0, Math.max(meanA + 3.5 * sdA, meanB + 3.5 * sdB));
+        const range = plotMax - plotMin;
+
+        // PDF formula computed in log-space to prevent underflows
+        function logBetaPDF(x, a, b, maxLog) {
+          if (x <= 0 || x >= 1) return -1000;
+          return (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - maxLog;
+        }
+
+        const modeA = (a_A - 1) / (a_A + b_A - 2);
+        const modeB = (a_B - 1) / (a_B + b_B - 2);
+
+        const maxLogA = (a_A - 1) * Math.log(modeA) + (b_A - 1) * Math.log(1 - modeA);
+        const maxLogB = (a_B - 1) * Math.log(modeB) + (b_B - 1) * Math.log(1 - modeB);
+
+        function mapX(val) {
+          return padding + ((val - plotMin) / range) * plotWidth;
+        }
+
+        // Draw curve lines
+        let pointsA = [];
+        let pointsB = [];
+        const steps = 100;
+        const delta = range / steps;
+
+        for (let i = 0; i <= steps; i++) {
+          const x = plotMin + i * delta;
+          const yA = Math.exp(logBetaPDF(x, a_A, b_A, maxLogA)) * 0.4;
+          const yB = Math.exp(logBetaPDF(x, a_B, b_B, maxLogB)) * 0.4;
+
+          pointsA.push({ x: mapX(x), y: baselineY - yA * plotHeight });
+          pointsB.push({ x: mapX(x), y: baselineY - yB * plotHeight });
+        }
+
+        const dCurveA = "M " + pointsA.map(p => `${p.x} ${p.y}`).join(" L ");
+        const dCurveB = "M " + pointsB.map(p => `${p.x} ${p.y}`).join(" L ");
+
+        const dFillA = dCurveA + ` L ${pointsA[pointsA.length - 1].x} ${baselineY} L ${pointsA[0].x} ${baselineY} Z`;
+        const dFillB = dCurveB + ` L ${pointsB[pointsB.length - 1].x} ${baselineY} L ${pointsB[0].x} ${baselineY} Z`;
+
+        const ns = "http://www.w3.org/2000/svg";
+
+        // Draw Axis
+        const axis = document.createElementNS(ns, "line");
+        axis.setAttribute("x1", padding);
+        axis.setAttribute("y1", baselineY);
+        axis.setAttribute("x2", width - padding);
+        axis.setAttribute("y2", baselineY);
+        axis.setAttribute("class", "svg-stroke-axis");
+        svg.appendChild(axis);
+
+        // Fill Area Control A (Cyan shaded)
+        const fillA = document.createElementNS(ns, "path");
+        fillA.setAttribute("d", dFillA);
+        fillA.setAttribute("class", "svg-fill-curve svg-fill-control");
+        svg.appendChild(fillA);
+
+        // Fill Area Treatment B (Purple shaded)
+        const fillB = document.createElementNS(ns, "path");
+        fillB.setAttribute("d", dFillB);
+        fillB.setAttribute("class", "svg-fill-curve svg-fill-treatment");
+        svg.appendChild(fillB);
+
+        // Path Control A (Cyan)
+        const pathA = document.createElementNS(ns, "path");
+        pathA.setAttribute("d", dCurveA);
+        pathA.setAttribute("class", "svg-stroke-curve svg-curve-control");
+        svg.appendChild(pathA);
+
+        // Path Treatment B (Purple)
+        const pathB = document.createElementNS(ns, "path");
+        pathB.setAttribute("d", dCurveB);
+        pathB.setAttribute("class", "svg-stroke-curve svg-curve-treatment");
+        svg.appendChild(pathB);
+
+        // Axis limits labels
+        const minLabel = document.createElementNS(ns, "text");
+        minLabel.setAttribute("x", padding);
+        minLabel.setAttribute("y", baselineY + 14);
+        minLabel.setAttribute("class", "svg-text-axis-label");
+        minLabel.textContent = `${(plotMin * 100).toFixed(1)}%`;
+        svg.appendChild(minLabel);
+
+        const maxLabel = document.createElementNS(ns, "text");
+        maxLabel.setAttribute("x", width - padding);
+        maxLabel.setAttribute("y", baselineY + 14);
+        maxLabel.setAttribute("class", "svg-text-axis-label svg-text-right");
+        maxLabel.textContent = `${(plotMax * 100).toFixed(1)}%`;
+        svg.appendChild(maxLabel);
+      }
+
+      // 3. Bandit Thompson Sampling Cyclical Flow Diagram
+      function renderBanditLoop() {
+        const svg = document.getElementById("bandit-loop-svg");
+        if (!svg) return;
+        svg.innerHTML = "";
+
+        const width = 400;
+        const height = 240;
+        const ns = "http://www.w3.org/2000/svg";
+
+        // Add definitions for arrow markers
+        const defs = document.createElementNS(ns, "defs");
+        const marker = document.createElementNS(ns, "marker");
+        marker.setAttribute("id", "bandit-arrowhead");
+        marker.setAttribute("viewBox", "0 0 10 10");
+        marker.setAttribute("refX", "6");
+        marker.setAttribute("refY", "5");
+        marker.setAttribute("markerWidth", "6");
+        marker.setAttribute("markerHeight", "6");
+        marker.setAttribute("orient", "auto-start-reverse");
+        
+        const markerPath = document.createElementNS(ns, "path");
+        markerPath.setAttribute("d", "M 0 2.5 L 7 5 L 0 7.5 z");
+        markerPath.setAttribute("fill", "rgba(255, 255, 255, 0.3)");
+        marker.appendChild(markerPath);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+
+        // Circle positions
+        const nodes = [
+          { name: "Arrivals", x: 200, y: 35, label: "1. Customer Arrival" },
+          { name: "Sample", x: 330, y: 110, label: "2. Sample Posterior" },
+          { name: "Route", x: 200, y: 185, label: "3. Assign Best Arm" },
+          { name: "Feedback", x: 70, y: 110, label: "4. Observe & Update" }
+        ];
+
+        // Draw cyclical paths arrows
+        const p1 = "M 230 45 Q 315 65 325 90";
+        const p2 = "M 320 130 Q 295 175 225 183";
+        const p3 = "M 170 180 Q 95 165 75 130";
+        const p4 = "M 80 90 Q 115 50 170 38";
+
+        const paths = [p1, p2, p3, p4];
+
+        // Draw curved arrows paths
+        paths.forEach(p => {
+          const path = document.createElementNS(ns, "path");
+          path.setAttribute("d", p);
+          path.setAttribute("class", "svg-bandit-arrow");
+          path.setAttribute("marker-end", "url(#bandit-arrowhead)");
+          svg.appendChild(path);
+        });
+
+        // Draw node circles
+        nodes.forEach(n => {
+          const c = document.createElementNS(ns, "circle");
+          c.setAttribute("cx", n.x);
+          c.setAttribute("cy", n.y);
+          c.setAttribute("r", 25);
+          c.setAttribute("class", `svg-bandit-node`);
+          svg.appendChild(c);
+
+          const t = document.createElementNS(ns, "text");
+          t.setAttribute("x", n.x);
+          t.setAttribute("y", n.y + 5);
+          t.setAttribute("class", "svg-text-bandit-node");
+          t.textContent = n.name.substring(0, 1);
+          svg.appendChild(t);
+
+          // Node subtitle labels
+          const sub = document.createElementNS(ns, "text");
+          sub.setAttribute("x", n.x);
+          sub.setAttribute("y", n.y + 40);
+          sub.setAttribute("class", "svg-text-bandit-label");
+          sub.textContent = n.label;
+          svg.appendChild(sub);
+        });
+      }
+
+      // ==========================================
+      // INTERACTIVE EDUCATIONAL SANDBOX LOGIC
+      // ==========================================
+      let sandboxUsersA = 0;
+      let sandboxConvA = 0;
+      let sandboxUsersB = 0;
+      let sandboxConvB = 0;
+
+      const trueRateA = 0.100;
+      const trueRateB = 0.135;
+
+      const sandboxBtnA = document.getElementById("sandbox-btn-a");
+      const sandboxBtnB = document.getElementById("sandbox-btn-b");
+      const sandboxBulkA = document.getElementById("sandbox-bulk-a");
+      const sandboxBulkB = document.getElementById("sandbox-bulk-b");
+      const sandboxResetBtn = document.getElementById("sandbox-reset");
+      const sandboxApplyBtn = document.getElementById("sandbox-apply");
+
+      function updateSandboxUI() {
+        document.getElementById("sandbox-users-a").textContent = sandboxUsersA.toLocaleString();
+        document.getElementById("sandbox-conv-a").textContent = sandboxConvA.toLocaleString();
+        const cvrA = sandboxUsersA > 0 ? (sandboxConvA / sandboxUsersA * 100) : 0;
+        document.getElementById("sandbox-cvr-a").textContent = cvrA.toFixed(2) + "%";
+
+        document.getElementById("sandbox-users-b").textContent = sandboxUsersB.toLocaleString();
+        document.getElementById("sandbox-conv-b").textContent = sandboxConvB.toLocaleString();
+        const cvrB = sandboxUsersB > 0 ? (sandboxConvB / sandboxUsersB * 100) : 0;
+        document.getElementById("sandbox-cvr-b").textContent = cvrB.toFixed(2) + "%";
+
+        // Calculate and update relative visual progress bar widths
+        const maxCvr = Math.max(cvrA, cvrB, 1.0);
+        const barWidthA = (cvrA / maxCvr * 100);
+        const barWidthB = (cvrB / maxCvr * 100);
+        document.getElementById("sandbox-bar-a").style.width = (sandboxUsersA > 0 ? Math.max(5, barWidthA) : 0) + "%";
+        document.getElementById("sandbox-bar-b").style.width = (sandboxUsersB > 0 ? Math.max(5, barWidthB) : 0) + "%";
+
+        calculateSandboxStats();
+      }
+
+      function calculateSandboxStats() {
+        const zStatEl = document.getElementById("sandbox-zstat");
+        const pValueEl = document.getElementById("sandbox-pvalue");
+        const liftEl = document.getElementById("sandbox-lift");
+        const verdictEl = document.getElementById("sandbox-verdict");
+
+        if (sandboxUsersA === 0 || sandboxUsersB === 0) {
+          zStatEl.textContent = "0.0000";
+          pValueEl.textContent = "1.000000";
+          liftEl.textContent = "0.00%";
+          liftEl.className = "";
+          verdictEl.innerHTML = '<span style="color: var(--text-muted);">Inconclusive (No data collected yet). Click or add bulk simulations!</span>';
+          return;
+        }
+
+        const pA = sandboxConvA / sandboxUsersA;
+        const pB = sandboxConvB / sandboxUsersB;
+        const diff = pB - pA;
+        const lift = pA > 0 ? (diff / pA * 100) : 0;
+
+        const pooledP = (sandboxConvA + sandboxConvB) / (sandboxUsersA + sandboxUsersB);
+        let z = 0;
+        if (pooledP > 0 && pooledP < 1) {
+          const se = Math.sqrt(pooledP * (1 - pooledP) * (1 / sandboxUsersA + 1 / sandboxUsersB));
+          z = se > 0 ? diff / se : 0;
+        }
+
+        const pVal = 2 * (1 - normalCDF(Math.abs(z)));
+
+        zStatEl.textContent = z.toFixed(4);
+        pValueEl.textContent = pVal.toFixed(6);
+        
+        liftEl.textContent = (lift >= 0 ? "+" : "") + lift.toFixed(2) + "%";
+        if (lift > 0) {
+          liftEl.className = "text-positive";
+        } else if (lift < 0) {
+          liftEl.className = "text-negative";
+        } else {
+          liftEl.className = "";
+        }
+
+        if (pVal <= 0.05) {
+          if (diff > 0) {
+            verdictEl.innerHTML = '<span style="color: var(--color-success);">✔ Statistically Significant (P ≤ 0.05). Variant B (Red button) yields a higher CVR than Control A (Blue button) with 95%+ confidence. Deploy Variant B!</span>';
+          } else {
+            verdictEl.innerHTML = '<span style="color: var(--color-danger);">✖ Statistically Significant (P ≤ 0.05). Variant B (Red button) yields a lower CVR than Control A (Blue button). Retain Control A!</span>';
+          }
+        } else {
+          verdictEl.innerHTML = '<span style="color: var(--color-warning);">ℹ Inconclusive (P > 0.05). The difference is not yet statistically significant. Continue simulating more visits to increase power.</span>';
+        }
+      }
+
+      function normalCDF(z) {
+        const absZ = Math.abs(z);
+        const p = 0.2316419;
+        const b1 = 0.319381530;
+        const b2 = -0.356563782;
+        const b3 = 1.781477937;
+        const b4 = -1.821255978;
+        const b5 = 1.330274429;
+        
+        const t = 1 / (1 + p * absZ);
+        const pdf = Math.exp(-0.5 * absZ * absZ) / Math.sqrt(2 * Math.PI);
+        const cdf = 1 - pdf * (b1 * t + b2 * t*t + b3 * Math.pow(t, 3) + b4 * Math.pow(t, 4) + b5 * Math.pow(t, 5));
+        return z >= 0 ? cdf : 1 - cdf;
+      }
+
+      // Bernoulli trials helper
+      function runTrial(rate) {
+        return Math.random() < rate;
+      }
+
+      if (sandboxBtnA) {
+        sandboxBtnA.addEventListener("click", function() {
+          sandboxUsersA++;
+          if (runTrial(trueRateA)) {
+            sandboxConvA++;
+          }
+          updateSandboxUI();
+        });
+      }
+
+      if (sandboxBtnB) {
+        sandboxBtnB.addEventListener("click", function() {
+          sandboxUsersB++;
+          if (runTrial(trueRateB)) {
+            sandboxConvB++;
+          }
+          updateSandboxUI();
+        });
+      }
+
+      if (sandboxBulkA) {
+        sandboxBulkA.addEventListener("click", function() {
+          for (let i = 0; i < 100; i++) {
+            sandboxUsersA++;
+            if (runTrial(trueRateA)) {
+              sandboxConvA++;
+            }
+          }
+          updateSandboxUI();
+        });
+      }
+
+      if (sandboxBulkB) {
+        sandboxBulkB.addEventListener("click", function() {
+          for (let i = 0; i < 100; i++) {
+            sandboxUsersB++;
+            if (runTrial(trueRateB)) {
+              sandboxConvB++;
+            }
+          }
+          updateSandboxUI();
+        });
+      }
+
+      if (sandboxResetBtn) {
+        sandboxResetBtn.addEventListener("click", function() {
+          sandboxUsersA = 0;
+          sandboxConvA = 0;
+          sandboxUsersB = 0;
+          sandboxConvB = 0;
+          updateSandboxUI();
+        });
+      }
+
+      if (sandboxApplyBtn) {
+        sandboxApplyBtn.addEventListener("click", function() {
+          if (sandboxUsersA === 0 || sandboxUsersB === 0) {
+            alert("Please simulate some visitors and conversions in the sandbox first before applying data!");
+            return;
+          }
+          // Set form mode to 'real'
+          const modeInput = document.getElementById("id_mode");
+          if (modeInput) {
+            modeInput.value = "real";
+          }
+          
+          // Populate Group A
+          const sampleAInput = document.getElementById("id_real_sample_size_a");
+          const convAInput = document.getElementById("id_real_conversions_a");
+          if (sampleAInput) sampleAInput.value = sandboxUsersA;
+          if (convAInput) convAInput.value = sandboxConvA;
+
+          // Populate Group B
+          const sampleBInput = document.getElementById("id_real_sample_size_b");
+          const convBInput = document.getElementById("id_real_conversions_b");
+          if (sampleBInput) sampleBInput.value = sandboxUsersB;
+          if (convBInput) convBInput.value = sandboxConvB;
+
+          // Submit the form
+          const configForm = document.getElementById("config-form");
+          if (configForm) {
+            configForm.submit();
+          }
+        });
+      }
+
+      const btnExportReport = document.getElementById("btn-export-report");
+      if (btnExportReport) {
+        btnExportReport.addEventListener("click", function() {
+          const configForm = document.getElementById("config-form");
+          if (!configForm) return;
+          
+          const formData = new FormData(configForm);
+          const params = new URLSearchParams();
+          
+          for (const [key, value] of formData.entries()) {
+            if (key !== "csrfmiddlewaretoken") {
+              params.append(key, value);
+            }
+          }
+          
+          const reportUrl = "{% url 'dashboard:experiment-report' %}?" + params.toString();
+          window.open(reportUrl, "_blank");
+        });
+      }
+    });
+  </script>
+</body>
+</html>
