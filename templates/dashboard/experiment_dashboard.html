@@ -30,8 +30,8 @@
   <div id="loading-overlay" class="loading-overlay">
     <div class="spinner-container">
       <div class="glow-spinner"></div>
-      <p class="loader-title">Processing Analysis...</p>
-      <p class="loader-subtitle">Running Monte Carlo trials & Bayesian Markov chains</p>
+      <p class="loader-title">Computing Statistical Models...</p>
+      <p class="loader-subtitle">Running Monte Carlo Simulations & Bayesian Conjugate Prior Updates</p>
     </div>
   </div>
 
@@ -140,7 +140,7 @@
               <div class="field-group">
                 <div class="field-header">
                   <label for="id_baseline_conversion_rate">Baseline CVR (Group A)</label>
-                  <div class="tooltip" data-text="The historical conversion rate of the control group (expressed as a decimal, e.g. 0.10 for 10%).">?</div>
+                  <div class="tooltip" data-text="The conversion rate of Control Group A, entered as a percentage (e.g. 10.0 for 10%).">?</div>
                 </div>
                 <div class="input-wrapper">
                   {{ form.baseline_conversion_rate }}
@@ -154,7 +154,7 @@
               <div class="field-group">
                 <div class="field-header">
                   <label for="id_expected_lift">Expected Lift (Group B)</label>
-                  <div class="tooltip" data-text="The relative increase in conversion rate expected for variant B (e.g. 12.0 for +12% relative lift).">?</div>
+                  <div class="tooltip" data-text="The target relative lift expected for Variant B, entered as a percentage (e.g. 12.0 for +12% relative lift).">?</div>
                 </div>
                 <div class="input-wrapper">
                   {{ form.expected_lift }}
@@ -255,7 +255,7 @@
               <div class="field-grid-half">
                 <div class="field-group">
                   <div class="field-header">
-                    <label for="id_posterior_samples">MCMC Draws</label>
+                    <label for="id_posterior_samples">Posterior Samples</label>
                     <div class="tooltip" data-text="Number of Monte Carlo posterior draws for probability calculations.">?</div>
                   </div>
                   {{ form.posterior_samples }}
@@ -744,16 +744,16 @@
           <div class="panel-body">
             <div class="sandbox-grid">
               <!-- Variant A (Control) Card -->
-              <div class="sandbox-card" style="padding: 24px; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; gap: 16px; background: hsla(225, 20%, 5%, 0.25);">
-                <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent-blue); display: flex; align-items: center; gap: 6px;">
-                  <span style="width: 8px; height: 8px; background-color: var(--accent-blue); border-radius: 50%; display: inline-block;"></span>
+              <div class="sandbox-card">
+                <h4 class="control-title">
+                  <span class="dot"></span>
                   Control A (Blue Button)
                 </h4>
                 
                 <button type="button" id="sandbox-btn-a" class="btn-preview-a" style="min-width: 140px;">Click Me!</button>
-                <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center;">Click the button directly to simulate a single user trial</div>
+                <div class="info-desc">Click the button directly to simulate a single user trial</div>
 
-                <div class="info-list" style="width: 100%; margin-top: 8px;">
+                <div class="info-list">
                   <div class="info-row">
                     <dt>Simulated Visitors ($N_A$)</dt>
                     <dd id="sandbox-users-a">0</dd>
@@ -766,8 +766,8 @@
                     <dt>Simulated CVR ($p_A$)</dt>
                     <dd id="sandbox-cvr-a">0.00%</dd>
                   </div>
-                  <div class="progress-track-wrapper" style="width: 100%; height: 6px; margin: 4px 0 8px 0; background-color: hsl(225, 12%, 18%); border-radius: 999px; overflow: hidden;">
-                    <div id="sandbox-bar-a" class="progress-fill fill-control" style="width: 0%; height: 100%; border-radius: 999px;"></div>
+                  <div class="progress-track-wrapper">
+                    <div id="sandbox-bar-a" class="progress-fill fill-control" style="width: 0%;"></div>
                   </div>
                 </div>
 
@@ -777,16 +777,16 @@
               </div>
 
               <!-- Variant B (Treatment) Card -->
-              <div class="sandbox-card" style="padding: 24px; border-radius: 8px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; gap: 16px; background: hsla(225, 20%, 5%, 0.25);">
-                <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--accent-purple); display: flex; align-items: center; gap: 6px;">
-                  <span style="width: 8px; height: 8px; background-color: var(--accent-purple); border-radius: 50%; display: inline-block;"></span>
+              <div class="sandbox-card">
+                <h4 class="treatment-title">
+                  <span class="dot"></span>
                   Variant B (Red Button)
                 </h4>
                 
                 <button type="button" id="sandbox-btn-b" class="btn-preview-b" style="min-width: 140px;">Click Me!</button>
-                <div style="font-size: 0.72rem; color: var(--text-muted); text-align: center;">Click the button directly to simulate a single user trial</div>
+                <div class="info-desc">Click the button directly to simulate a single user trial</div>
 
-                <div class="info-list" style="width: 100%; margin-top: 8px;">
+                <div class="info-list">
                   <div class="info-row">
                     <dt>Simulated Visitors ($N_B$)</dt>
                     <dd id="sandbox-users-b">0</dd>
@@ -799,8 +799,8 @@
                     <dt>Simulated CVR ($p_B$)</dt>
                     <dd id="sandbox-cvr-b">0.00%</dd>
                   </div>
-                  <div class="progress-track-wrapper" style="width: 100%; height: 6px; margin: 4px 0 8px 0; background-color: hsl(225, 12%, 18%); border-radius: 999px; overflow: hidden;">
-                    <div id="sandbox-bar-b" class="progress-fill fill-treatment" style="width: 0%; height: 100%; border-radius: 999px;"></div>
+                  <div class="progress-track-wrapper">
+                    <div id="sandbox-bar-b" class="progress-fill fill-treatment" style="width: 0%;"></div>
                   </div>
                 </div>
 
@@ -811,8 +811,8 @@
             </div>
 
             <!-- Live Statistical Output -->
-            <div style="background-color: hsl(225, 20%, 5%, 0.4); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; margin-top: 8px; display: flex; flex-direction: column; gap: 12px;">
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+            <div class="sandbox-stats">
+              <div class="sandbox-stats-grid">
                 <div style="text-align: center;">
                   <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Z-Statistic</div>
                   <div id="sandbox-zstat" style="font-size: 1.25rem; font-weight: 800; font-family: var(--font-mono); margin-top: 4px;">0.0000</div>
@@ -827,7 +827,7 @@
                 </div>
               </div>
 
-              <div style="border-top: 1px dotted var(--border-subtle); padding-top: 12px; text-align: center;">
+              <div style="border-top: 1px dotted rgba(255, 255, 255, 0.1); padding-top: 12px; text-align: center;">
                 <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Statistical Inference State</div>
                 <div id="sandbox-verdict" style="font-size: 0.9rem; font-weight: 700; color: var(--color-warning); margin-top: 4px;">Inconclusive (No data collected yet). Click or add bulk simulations!</div>
               </div>
