@@ -390,7 +390,7 @@
             {% endif %}
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card card-control">
             <div class="metric-header">
               <span>{% if analysis.mode == 'real' %}Observed{% else %}Simulated{% endif %} CVR A</span>
               <span class="variation-badge badge-a">Control</span>
@@ -399,7 +399,7 @@
             <div class="metric-footer">{{ analysis.experiment.conversions_a|number:0 }} conversions</div>
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card card-treatment">
             <div class="metric-header">
               <span>{% if analysis.mode == 'real' %}Observed{% else %}Simulated{% endif %} CVR B</span>
               <span class="variation-badge badge-b">Treatment</span>
@@ -408,7 +408,7 @@
             <div class="metric-footer">{{ analysis.experiment.conversions_b|number:0 }} conversions</div>
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card card-probability">
             <div class="metric-header">
               <span>Probability B > A</span>
               <div class="metric-icon code-color-green">
@@ -853,7 +853,7 @@
           </svg>
           <h3>Methodology Guide</h3>
         </div>
-        <button type="button" id="close-drawer" class="btn-close-drawer">
+        <button type="button" id="close-drawer" class="btn-close-drawer" aria-label="Close Guide">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
