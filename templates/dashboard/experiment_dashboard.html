@@ -410,7 +410,7 @@
 
           <div class="metric-card card-probability">
             <div class="metric-header">
-              <span>Probability B > A</span>
+              <span>Probability $P(\theta_B > \theta_A)$</span>
               <div class="metric-icon code-color-green">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -579,7 +579,7 @@
                   <dd>{{ analysis.bayesian.posterior_mean_b|percentage }}</dd>
                 </div>
                 <div class="info-row">
-                  <dt>Prob(B > A)</dt>
+                  <dt>Prob$(\theta_B > \theta_A)$</dt>
                   <dd class="text-positive">{{ analysis.bayesian.probability_b_better|percentage }}</dd>
                 </div>
                 <div class="info-row">
@@ -987,7 +987,7 @@
 
           <div class="guide-topic">
             <h5>
-              <span class="highlight-term label-bayes">Probability B > A</span>
+              <span class="highlight-term label-bayes">Probability $P(\theta_B > \theta_A)$</span>
             </h5>
             <p class="guide-sub-p">We draw $100,000+$ random samples from both posterior distributions ($p_A$ and $p_B$) and calculate the proportion of samples where $p_B > p_A$. This yields the direct probability that Variant B is better than Control A.</p>
           </div>
