@@ -109,10 +109,17 @@
                 </svg>
                 <h2>Configuration</h2>
               </div>
-              <button type="submit" class="btn-submit">
-                <span>Run Analysis</span>
-              </button>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" id="sidebar-toggle" class="btn-sidebar-toggle">
+                  <span>Show Options</span>
+                </button>
+                <button type="submit" class="btn-submit">
+                  <span>Run <span class="hide-mobile">Analysis</span></span>
+                </button>
+              </div>
             </div>
+
+            <div id="sidebar-form-fields" class="sidebar-form-fields-collapsed">
 
             <!-- Mode Switcher Tabs -->
             <div class="mode-tab-container">
@@ -311,6 +318,7 @@
               </div>
             </div>
 
+            </div>
           </form>
         </div>
       </aside>
@@ -815,7 +823,7 @@
             </div>
 
             <!-- Global Action Controls -->
-            <div style="display: flex; gap: 16px; margin-top: 8px; justify-content: flex-end;">
+            <div class="sandbox-actions-wrapper">
               <button type="button" id="sandbox-reset" class="btn-guide" style="color: var(--color-danger); border-color: rgba(243, 62, 88, 0.2);">
                 <span>Reset Sandbox</span>
               </button>
@@ -2248,6 +2256,17 @@
           
           const reportUrl = "{% url 'dashboard:experiment-report' %}?" + params.toString();
           window.open(reportUrl, "_blank");
+        });
+      }
+
+      // Sidebar Toggle Logic for Mobile
+      const sidebarToggle = document.getElementById("sidebar-toggle");
+      const sidebarFormFields = document.getElementById("sidebar-form-fields");
+      if (sidebarToggle && sidebarFormFields) {
+        sidebarToggle.addEventListener("click", function() {
+          sidebarFormFields.classList.toggle("expanded");
+          const isExpanded = sidebarFormFields.classList.contains("expanded");
+          sidebarToggle.querySelector("span").textContent = isExpanded ? "Hide Options" : "Show Options";
         });
       }
     });

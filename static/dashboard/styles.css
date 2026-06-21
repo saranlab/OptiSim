@@ -201,6 +201,9 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px hsla(195, 100%, 45%, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-submit:hover {
@@ -211,6 +214,16 @@ body {
 
 .btn-submit:active {
   transform: translateY(0);
+}
+
+.btn-sidebar-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
 }
 
 /* Form Styles */
@@ -1753,7 +1766,7 @@ input:focus {
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--border-subtle);
-    max-height: 500px;
+    max-height: none;
   }
   
   .metrics-grid {
@@ -1762,6 +1775,48 @@ input:focus {
   
   .financial-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .btn-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    background-color: hsl(225, 12%, 18%);
+    color: var(--text-main);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-sidebar-toggle:hover {
+    background-color: hsl(225, 16%, 22%);
+  }
+
+  .sidebar-form-fields-collapsed {
+    display: none;
+  }
+  
+  .sidebar-form-fields-collapsed.expanded {
+    display: flex;
+    flex-direction: column;
+    margin-top: 16px;
+    animation: slideDown 0.3s ease-out forwards;
+    gap: 16px;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
@@ -1973,5 +2028,24 @@ input:focus {
 @media (max-width: 768px) {
   .sandbox-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+.sandbox-actions-wrapper {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 500px) {
+  .sandbox-actions-wrapper {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .sandbox-actions-wrapper button {
+    width: 100%;
+    justify-content: center;
   }
 }
