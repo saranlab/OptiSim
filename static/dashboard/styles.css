@@ -197,7 +197,7 @@ body {
   background: linear-gradient(135deg, hsl(195, 100%, 45%), hsl(205, 95%, 45%));
   color: var(--text-main);
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 8px 16px;
   font-family: var(--font-sans);
   font-weight: 700;
@@ -299,6 +299,11 @@ input:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(0, 242, 254, 0.15);
   background-color: rgba(5, 7, 12, 0.85);
+}
+
+input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.55;
 }
 
 .input-wrapper {
@@ -1178,7 +1183,7 @@ input:focus {
 .btn-guide {
   background: none;
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-muted);
   font-family: var(--font-sans);
   font-weight: 600;
@@ -1952,7 +1957,7 @@ input:focus {
 .btn-tutorial {
   background: none;
   border: 1px solid var(--border-subtle);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text-muted);
   font-family: var(--font-sans);
   font-weight: 600;
@@ -2173,5 +2178,25 @@ input:focus {
   .sandbox-stats-grid {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+}
+
+/* Reduced Motion Accessibility Settings */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: -1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    background-attachment: initial !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
+  .glow-spinner,
+  .svg-bandit-arrow,
+  .pulse .badge-dot {
+    animation: none !important;
   }
 }
