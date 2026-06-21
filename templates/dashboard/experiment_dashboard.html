@@ -318,7 +318,7 @@
       <!-- Dashboard Results -->
       <section class="results-container">
         <!-- Decision Engine Header Recommendation Banner -->
-        <div class="status-header rec-panel status-{{ analysis.recommendation.status }}" style="display: flex; align-items: center; gap: 24px; padding: 20px 24px; border: 1px solid var(--border-subtle); border-radius: 8px; margin-bottom: 24px;">
+        <div class="status-header rec-panel status-{{ analysis.recommendation.status }} rec-panel-container">
           <div class="rec-visual" style="margin-bottom: 0;">
             {% if analysis.recommendation.status == 'success' %}
               <div class="rec-status-circle success-circle" style="margin-bottom: 0; width: 48px; height: 48px;">
@@ -635,7 +635,7 @@
             <span class="sub-badge" style="background-color: hsla(145, 80%, 65%, 0.15); color: hsl(145, 80%, 65%); border-color: hsla(145, 80%, 65%, 0.3);">Business ROI Projections</span>
           </div>
           <div class="panel-body">
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;">
+            <div class="financial-grid">
               
               <!-- Gross Revenue Uplift -->
               <div style="background: hsla(225, 20%, 5%, 0.25); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 16px; text-align: center;">
