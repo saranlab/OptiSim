@@ -524,6 +524,17 @@
                   <dt>Confidence Interval bounds</dt>
                   <dd>[{{ analysis.frequentist.ci_lower|percentage }} , {{ analysis.frequentist.ci_upper|percentage }}]</dd>
                 </div>
+                <div class="info-row">
+                  <dt>Observed Statistical Power</dt>
+                  <dd class="code-font {% if analysis.frequentist.power >= 0.80 %}text-positive{% else %}text-warning{% endif %}" style="font-weight: 700;">
+                    {{ analysis.frequentist.power|percentage }}
+                    {% if analysis.frequentist.power >= 0.80 %}
+                      <span style="font-size: 0.72rem; opacity: 0.95;">(Adequate)</span>
+                    {% else %}
+                      <span style="font-size: 0.72rem; opacity: 0.95;">(Low Power)</span>
+                    {% endif %}
+                  </dd>
+                </div>
               </dl>
             </div>
           </div>

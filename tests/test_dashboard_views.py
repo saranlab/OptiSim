@@ -105,6 +105,7 @@ class TestExperimentDashboardViews(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Methodology Verification Report")
         self.assertContains(response, "Two-Proportion Wald Z-Test")
+        self.assertContains(response, "Observed Statistical Power (1 - &beta;):")
         self.assertContains(response, "Conjugate Beta-Binomial Inference")
         self.assertContains(response, "Financial Impact &amp; ROI Projections")
         self.assertContains(response, "12,400.0%")

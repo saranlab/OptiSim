@@ -69,6 +69,39 @@ class StatsEngine:
         return int(ceil(numerator / (delta**2)))
 
     @staticmethod
+    def calculate_statistical_power(
+        p_a: float,
+        sample_size_a: int,
+        p_b: float,
+        sample_size_b: int,
+        alpha: float = 0.05,
+    ) -> float:
+        """
+        Calculate the post-hoc statistical power of the two-proportion test.
+        """
+        if sample_size_a <= 0 or sample_size_b <= 0:
+            return 0.0
+
+        diff = abs(p_b - p_a)
+        if diff < EPSILON:
+            return alpha
+
+        se = sqrt(
+            max(
+                safe_divide(p_a * (1.0 - p_a), sample_size_a)
+                + safe_divide(p_b * (1.0 - p_b), sample_size_b),
+                0.0,
+            )
+        )
+        if se < EPSILON:
+            return alpha
+
+        z_crit = NormalDistribution.ppf(1.0 - alpha / 2.0)
+        z_beta = (diff / se) - z_crit
+        power = NormalDistribution.cdf(z_beta)
+        return float(power)
+
+    @staticmethod
     def two_proportion_z_test(
         conversions_a: int,
         sample_size_a: int,
@@ -133,6 +166,14 @@ class StatsEngine:
         ci_lower = absolute_lift - z_crit * unpooled_se
         ci_upper = absolute_lift + z_crit * unpooled_se
 
+        power = StatsEngine.calculate_statistical_power(
+            p_a=p_a,
+            sample_size_a=sample_size_a,
+            p_b=p_b,
+            sample_size_b=sample_size_b,
+            alpha=alpha,
+        )
+
         return FrequentistResult(
             conversion_rate_a=p_a,
             conversion_rate_b=p_b,
@@ -144,4 +185,5 @@ class StatsEngine:
             ci_lower=ci_lower,
             ci_upper=ci_upper,
             alpha=alpha,
+            power=power,
         )

@@ -30,6 +30,33 @@ class TestStatsEngine(unittest.TestCase):
         self.assertAlmostEqual(result.relative_lift, 0.25)
         self.assertLessEqual(result.ci_lower, result.absolute_lift)
         self.assertGreaterEqual(result.ci_upper, result.absolute_lift)
+        self.assertGreaterEqual(result.power, 0.0)
+        self.assertLessEqual(result.power, 1.0)
+
+    def test_calculate_statistical_power_behaves_correctly(self) -> None:
+        # 1. Identical conversion rates should return close to alpha
+        power_null = StatsEngine.calculate_statistical_power(
+            p_a=0.10, sample_size_a=1000, p_b=0.10, sample_size_b=1000, alpha=0.05
+        )
+        self.assertAlmostEqual(power_null, 0.05, places=4)
+
+        # 2. Power should increase with sample size
+        power_small = StatsEngine.calculate_statistical_power(
+            p_a=0.10, sample_size_a=500, p_b=0.15, sample_size_b=500, alpha=0.05
+        )
+        power_large = StatsEngine.calculate_statistical_power(
+            p_a=0.10, sample_size_a=2000, p_b=0.15, sample_size_b=2000, alpha=0.05
+        )
+        self.assertGreater(power_large, power_small)
+
+        # 3. Power should increase with absolute effect size
+        power_low_lift = StatsEngine.calculate_statistical_power(
+            p_a=0.10, sample_size_a=1000, p_b=0.11, sample_size_b=1000, alpha=0.05
+        )
+        power_high_lift = StatsEngine.calculate_statistical_power(
+            p_a=0.10, sample_size_a=1000, p_b=0.15, sample_size_b=1000, alpha=0.05
+        )
+        self.assertGreater(power_high_lift, power_low_lift)
 
 
 if __name__ == "__main__":

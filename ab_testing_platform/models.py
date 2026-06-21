@@ -56,6 +56,7 @@ class FrequentistResult:
     ci_lower: float
     ci_upper: float
     alpha: float
+    power: float
 
 
 @dataclass(frozen=True)

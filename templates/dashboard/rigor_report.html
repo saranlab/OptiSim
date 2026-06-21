@@ -390,8 +390,10 @@
 
       <div class="formula-block">
         $$\text{Pooled Conversion Rate: } p_{pooled} = \frac{S_A + S_B}{N_A + N_B}$$
-        $$\text{Standard Error: } SE_{pooled} = \sqrt{p_{pooled}(1-p_{pooled})\left(\frac{1}{N_A} + \frac{1}{N_B}\right)}$$
+        $$\text{Pooled Standard Error: } SE_{pooled} = \sqrt{p_{pooled}(1-p_{pooled})\left(\frac{1}{N_A} + \frac{1}{N_B}\right)}$$
         $$\text{Z-Statistic: } Z = \frac{p_B - p_A}{SE_{pooled}}$$
+        $$\text{Unpooled Standard Error: } SE_{unpooled} = \sqrt{\frac{p_A(1-p_A)}{N_A} + \frac{p_B(1-p_B)}{N_B}}$$
+        $$\text{Observed Power } (1 - \beta) = \Phi\left(\frac{|p_B - p_A|}{SE_{unpooled}} - Z_{1-\alpha/2}\right)$$
       </div>
 
       <div class="computation-steps">
@@ -420,6 +422,17 @@
         <div class="step-row">
           <span class="step-label">95% Confidence Interval bounds:</span>
           <span class="step-math">[{{ analysis.frequentist.ci_lower|percentage }} , {{ analysis.frequentist.ci_upper|percentage }}]</span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Observed Statistical Power (1 - &beta;):</span>
+          <span class="step-math" style="font-weight: bold; color: {% if analysis.frequentist.power >= 0.80 %}#16a34a{% else %}#b45309{% endif %};">
+            {{ analysis.frequentist.power|percentage }}
+            {% if analysis.frequentist.power >= 0.80 %}
+              <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-gray-dark);">(Adequate)</span>
+            {% else %}
+              <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-gray-dark);">(Low Power)</span>
+            {% endif %}
+          </span>
         </div>
         <div class="step-row">
           <span class="step-label">Frequentist Significance:</span>
