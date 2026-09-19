@@ -1346,19 +1346,19 @@ with tab4:
         )
 
         m_tab1, m_tab2, m_tab3, m_tab4, m_tab5, m_tab6, m_tab7 = st.tabs([
-            "🛡️ 1. Confidence Sequences",
-            "⚡ 2. CUPED Variance Reduction",
-            "📐 3. Clustered Delta Method",
-            "🧠 4. Bayesian Decision & Loss",
-            "🤖 5. Bandit Algorithms (LinUCB)",
-            "📊 6. Frequentist & Power Sizing",
-            "💰 7. Financial & Breakeven",
+            "🛡️ Sequential CS",
+            "⚡ CUPED",
+            "📐 Delta Method",
+            "🧠 Bayesian Loss",
+            "🤖 LinUCB Bandits",
+            "📊 Frequentist & Power",
+            "💰 Financial ROI",
         ])
 
         with m_tab1:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     Anytime-Valid Confidence Sequences (Waudby-Smith & Ramdas, 2023)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1369,29 +1369,39 @@ with tab4:
             )
             st.markdown(
                 r"""
-                $$\text{CS}_n = \left[ \hat{\delta}_n \pm W_n \right], \quad W_n = \sigma \sqrt{\frac{2(n\rho^2 + 1)}{n^2 \rho^2} \log\left(\frac{\sqrt{n\rho^2 + 1}}{\alpha}\right)}$$
+                **Confidence Sequence Envelope Formulation:**
+
+                $$\text{CS}_n = \left[ \hat{\delta}_n \pm W_n \right]$$
+
+                $$W_n = \sigma \sqrt{\frac{2(n\rho^2 + 1)}{n^2 \rho^2} \log\left(\frac{\sqrt{n\rho^2 + 1}}{\alpha}\right)}$$
 
                 **Time-Uniform Guarantee (Ville's Martingale Inequality):**
+
                 $$\mathbb{P}\left(\exists n \ge 1: \; \delta^* \notin \text{CS}_n\right) \le \alpha \iff \mathbb{P}\left(\forall n \ge 1: \; \delta^* \in \text{CS}_n\right) \ge 1 - \alpha$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
                 | :--- | :--- | :--- |
                 | $\hat{\delta}_n$ | Empirical Lift | Point estimate $\hat{p}_{B,n} - \hat{p}_{A,n}$ observed at arbitrary sample size $n$. |
                 | $\delta^*$ | True Population Lift | Unobserved ground-truth average treatment effect (ATE). |
-                | $W_n$ | Half-Width Radius | Time-uniform confidence envelope shrinking at the optimal rate $\mathcal{O}\left(\sqrt{\frac{\log n}{n}}\right)$. |
+                | $W_n$ | Half-Width Radius | Time-uniform confidence envelope shrinking at optimal rate $\mathcal{O}\left(\sqrt{\frac{\log n}{n}}\right)$. |
                 | $\sigma$ | Sub-Gaussian Proxy | Sub-Gaussian parameter proxy: $\sqrt{p(1-p)}$ for Bernoulli conversion trials. |
-                | $\rho$ | Intrinsic Tuning Horizon | Tuning scalar calibrated for minimal boundary width around expected sample size $N^*$. |
-                | $\alpha$ | Family-Wise Error Rate | Type I error probability guaranteed across infinite looks (e.g. $\alpha = 0.05 \implies 95\%$ confidence). |
+                | $\rho$ | Intrinsic Tuning Horizon | Tuning scalar calibrated for minimal boundary width around target sample size $N^*$. |
+                | $\alpha$ | Family-Wise Error Rate | Type I error probability guaranteed across continuous monitoring (e.g. $\alpha = 0.05$). |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > In standard A/B testing, checking results daily ("peeking") inflates false positive discovery rates from 5% to over 30%. Non-negative supermartingales guarantee that practitioners can monitor dashboards in real time and stop as soon as $0 \notin \text{CS}_n$ without invalidating statistical error guarantees.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        In standard fixed-horizon A/B testing, checking the dashboard daily ("peeking") inflates false positive discovery rates from 5% to over 30%. Non-negative supermartingales guarantee that practitioners can monitor dashboards continuously and stop as soon as 0 ∉ CSₙ without invalidating statistical error guarantees.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         with m_tab2:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     CUPED: Controlled-Experiment Using Pre-Experiment Data (Deng et al., 2013)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1402,29 +1412,40 @@ with tab4:
             )
             st.markdown(
                 r"""
-                $$Y_{\text{adj}} = Y - \theta^*(X - \mathbb{E}[X]), \quad \text{with optimal coefficient } \theta^* = \frac{\text{Cov}(Y, X)}{\text{Var}(X)}$$
+                **De-Noised Metric & Optimal Covariate Weight:**
+
+                $$Y_{\text{adj}} = Y - \theta^*(X - \mathbb{E}[X])$$
+
+                $$\theta^* = \frac{\text{Cov}(Y, X)}{\text{Var}(X)} = \rho_{XY} \frac{\sigma_Y}{\sigma_X}$$
 
                 **Variance Reduction Theorem & Traffic Savings:**
-                $$\text{Var}(Y_{\text{adj}}) = \text{Var}(Y) \cdot (1 - \rho_{XY}^2), \quad N_{\text{CUPED}} = N_{\text{raw}} \cdot (1 - \rho_{XY}^2)$$
-                $$\text{Sample Size Reduction (\%)} = \rho_{XY}^2 \times 100\%$$
+
+                $$\text{Var}(Y_{\text{adj}}) = \text{Var}(Y) \cdot (1 - \rho_{XY}^2)$$
+
+                $$N_{\text{CUPED}} = N_{\text{raw}} \cdot (1 - \rho_{XY}^2) \implies \text{Traffic Savings} = \rho_{XY}^2 \times 100\%$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
                 | :--- | :--- | :--- |
-                | $Y$ | Primary Outcome Metric | Post-treatment metric per user (e.g. conversions or revenue during the test window). |
-                | $X$ | Pre-Experiment Covariate | Pre-existing baseline metric measured *before* user enters experiment (e.g. past 14-day spend). |
+                | $Y$ | Primary Outcome Metric | Post-treatment metric per user (e.g. conversions or revenue during test window). |
+                | $X$ | Pre-Experiment Covariate | Pre-existing baseline metric measured *before* test exposure (e.g. past 14-day spend). |
                 | $\theta^*$ | Optimal OLS Scalar | Linear regression slope coefficient that strictly minimizes $\text{Var}(Y_{\text{adj}})$. |
                 | $\rho_{XY}$ | Covariate Correlation | Pearson correlation between pre-experiment baseline $X$ and test outcome $Y$. |
-                | $Y_{\text{adj}}$ | De-Noised Estimator | Adjusted metric with identical expectation ($\mathbb{E}[Y_{\text{adj}}] = \mathbb{E}[Y]$) but substantially lower variance. |
+                | $Y_{\text{adj}}$ | De-Noised Estimator | Adjusted metric with identical expectation ($\mathbb{E}[Y_{\text{adj}}] = \mathbb{E}[Y]$) but lower variance. |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > Natural user variance (e.g. heavy spenders vs casual users) creates immense noise. CUPED partials out baseline pre-experiment variance. At $\rho = 0.60$, required sample size drops by 36%—allowing teams to reach decisions in 9 days instead of 14 days with zero risk of bias.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        Natural user variance (e.g. whale spenders vs casual users) creates massive random noise. CUPED partials out baseline pre-experiment variance. At ρ = 0.60, required sample size drops by 36%—allowing teams to ship decisions in 9 days instead of 14 days with zero risk of bias.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         with m_tab3:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     Clustered Delta Method for Ratio Metrics (Deng et al., 2018)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1435,13 +1456,20 @@ with tab4:
             )
             st.markdown(
                 r"""
+                **Clustered Ratio Metric Estimator:**
+
                 $$\hat{R} = \frac{\sum_{i=1}^m Y_i}{\sum_{i=1}^m N_i} = \frac{\bar{Y}}{\bar{N}} \quad \left(\text{e.g. CTR} = \frac{\text{Total Clicks}}{\text{Total Sessions}}, \quad \text{RPM} = \frac{\text{Total Revenue}}{\text{Total Pageviews}}\right)$$
 
-                **Multivariate First-Order Taylor Expansion:**
+                **Multivariate First-Order Taylor Expansion (Cluster-Robust Variance):**
+
                 $$\widehat{\text{Var}}(\hat{R}) \approx \frac{1}{m \bar{N}^2} \left[ s_Y^2 - 2 \hat{R} s_{YN} + \hat{R}^2 s_N^2 \right]$$
-                $$\text{where } s_Y^2 = \frac{1}{m-1} \sum_{i=1}^m (Y_i - \bar{Y})^2, \quad s_N^2 = \frac{1}{m-1} \sum_{i=1}^m (N_i - \bar{N})^2, \quad s_{YN} = \frac{1}{m-1} \sum_{i=1}^m (Y_i - \bar{Y})(N_i - \bar{N})$$
+
+                *User-Cluster Sample Variances & Covariances:*
+
+                $$s_Y^2 = \frac{1}{m-1} \sum_{i=1}^m (Y_i - \bar{Y})^2, \quad s_N^2 = \frac{1}{m-1} \sum_{i=1}^m (N_i - \bar{N})^2, \quad s_{YN} = \frac{1}{m-1} \sum_{i=1}^m (Y_i - \bar{Y})(N_i - \bar{N})$$
 
                 **Variance Inflation Factor (Clustering Penalty):**
+
                 $$\text{VIF} = \frac{\text{SE}_{\text{cluster}}}{\text{SE}_{\text{naive}}} \ge 1, \quad \text{where } \text{SE}_{\text{naive}} = \sqrt{\frac{\hat{R}(1 - \hat{R})}{\sum N_i}}$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
@@ -1453,15 +1481,20 @@ with tab4:
                 | $s_{YN}$ | Cross-Covariance | User-level covariance between session frequency and event occurrence. |
                 | $\text{VIF}$ | Variance Inflation | Degree to which naive standard errors underestimate true sampling variability. |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > Randomizing at the user level while measuring at the session level creates intra-user correlation. Naive pooled t-tests assume every session is an independent user, underestimating error bars by up to 3x and flooding platforms with false positive winner claims.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        Randomizing at the user level while measuring at the session level creates intra-user correlation. Naive pooled t-tests assume every session is an independent user, underestimating error bars by up to 3x and flooding platforms with false positive winner claims. The Delta Method produces honest, cluster-robust confidence intervals.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         with m_tab4:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     Bayesian Decision Theory & Expected Loss (Stucchio, 2015)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1473,13 +1506,17 @@ with tab4:
             st.markdown(
                 r"""
                 **Conjugate Beta-Binomial Posterior Density:**
+
                 $$\theta_i \mid k_i, n_i \sim \text{Beta}(\alpha_0 + k_i, \; \beta_0 + n_i - k_i), \quad \text{with uninformative prior } \text{Beta}(1, 1)$$
 
-                **Probability of Superiority & Expected Loss Integrals:**
+                **Probability of Superiority & Expected Downside Risk:**
+
                 $$\mathbb{P}(\theta_B > \theta_A \mid \mathcal{D}) = \int_0^1 \int_{\theta_A}^1 p(\theta_A \mid \mathcal{D}) \, p(\theta_B \mid \mathcal{D}) \, d\theta_B \, d\theta_A$$
+
                 $$\mathbb{E}[\text{Loss} \mid \text{Deploy } B] = \int_0^1 \int_0^1 \max(0, \theta_A - \theta_B) \, p(\theta_A \mid \mathcal{D}) \, p(\theta_B \mid \mathcal{D}) \, d\theta_A \, d\theta_B$$
 
                 **Optimal Economic Stopping Rule:**
+
                 $$\text{Deploy Variant } B \iff \mathbb{E}[\text{Loss} \mid \text{Deploy } B] < \varepsilon \quad (\varepsilon = \text{business risk tolerance, e.g. } 0.001)$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
@@ -1490,15 +1527,20 @@ with tab4:
                 | $\mathbb{E}[\text{Loss}]$ | Downside Risk | Expected conversion rate surrender if the shipped decision turns out to be wrong. |
                 | $\varepsilon$ | Risk Tolerance | Maximum permissible conversion point downside threshold before taking action. |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > P-values fail to answer the primary commercial question: "What is the expected dollar loss if this release is a mistake?" Bayesian Expected Loss quantifies exact downside risk in conversion points, allowing automated ship/no-ship thresholds.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        P-values fail to answer the primary commercial question: "What is the expected dollar loss if this release is a mistake?" Bayesian Expected Loss quantifies exact downside risk in conversion points, allowing automated ship/no-ship thresholds.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         with m_tab5:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     Multi-Armed Bandits & LinUCB Contextual Optimization (Li et al., 2010)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1510,35 +1552,45 @@ with tab4:
             st.markdown(
                 r"""
                 **A. Beta-Bernoulli Thompson Sampling (Probability Matching):**
+
                 $$\tilde{\theta}_k \sim \text{Beta}(\alpha_k, \; \beta_k), \quad a_t = \arg\max_{k \in \mathcal{K}} \tilde{\theta}_k, \quad \alpha_{a_t} \leftarrow \alpha_{a_t} + r_t, \quad \beta_{a_t} \leftarrow \beta_{a_t} + (1 - r_t)$$
 
                 **B. LinUCB with Disjoint Linear Models (Contextual Personalization):**
+
                 $$\mathbb{E}[r_{t, a} \mid x_t] = x_t^T \theta_a^* \quad \implies \quad \hat{\theta}_a = A_a^{-1} b_a$$
+
                 $$\text{where } A_a = I_d + \sum_{\tau: a_\tau = a} x_\tau x_\tau^T, \quad b_a = \sum_{\tau: a_\tau = a} r_\tau x_\tau$$
 
                 **Upper Confidence Bound Arm Decision Rule:**
+
                 $$a_t = \arg\max_{a \in \mathcal{A}} \left[ x_t^T \hat{\theta}_a + \alpha_{\text{UCB}} \sqrt{x_t^T A_a^{-1} x_t} \right]$$
 
                 **Asymptotic Sub-Linear Regret:**
+
                 $$\text{Regret}(T) = \sum_{t=1}^T \left( r_t^* - r_{t, a_t} \right) \le \mathcal{O}\left(d \sqrt{T \log(T)}\right) \implies \lim_{T \to \infty} \frac{\text{Regret}(T)}{T} = 0$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
                 | :--- | :--- | :--- |
-                | $x_t \in \mathbb{R}^d$ | User Context Vector | Feature representation of the incoming visitor (device, traffic channel, intent). |
+                | $x_t \in \mathbb{R}^d$ | User Context Vector | Feature representation of incoming visitor (device, traffic channel, intent). |
                 | $\hat{\theta}_a \in \mathbb{R}^d$ | Arm Parameter Estimate | Online ridge regression weight vector capturing variant preference for arm $a$. |
                 | $A_a \in \mathbb{R}^{d \times d}$ | Covariance Precision | Gram matrix accumulating context feature outer products allocated to arm $a$. |
                 | $\alpha_{\text{UCB}}$ | Exploration Radius | Confidence multiplier governing the exploration-exploitation tradeoff. |
                 | $\text{Regret}(T)$ | Cumulative Regret | Total loss in conversions compared to an oracle always choosing the optimal arm. |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > Traditional 50/50 A/B testing wastes 50% of traffic on inferior variants during weeks of experimentation. LinUCB shifts traffic in real time toward the winning experience while personalizing based on user context attributes.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        Traditional 50/50 A/B testing wastes 50% of traffic on inferior variants during weeks of experimentation. LinUCB shifts traffic in real time toward the winning experience while personalizing based on user context attributes.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         with m_tab6:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     Frequentist Hypothesis Testing & Power Sizing (Lehr, 1992)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1550,12 +1602,15 @@ with tab4:
             st.markdown(
                 r"""
                 **Two-Proportion Pooled Z-Test Statistic:**
+
                 $$Z = \frac{\hat{p}_B - \hat{p}_A}{\text{SE}_{\text{pool}}}, \quad \text{SE}_{\text{pool}} = \sqrt{\hat{p}_{\text{pool}}(1 - \hat{p}_{\text{pool}}) \left( \frac{1}{n_A} + \frac{1}{n_B} \right)}, \quad \hat{p}_{\text{pool}} = \frac{k_A + k_B}{n_A + n_B}$$
 
                 **P-Value & Wald Confidence Interval:**
+
                 $$p\text{-value} = 2 \cdot \left[1 - \Phi(|Z|)\right], \quad \text{CI}_{1-\alpha} = (\hat{p}_B - \hat{p}_A) \pm z_{1 - \alpha/2} \sqrt{\frac{\hat{p}_A(1 - \hat{p}_A)}{n_A} + \frac{\hat{p}_B(1 - \hat{p}_B)}{n_B}}$$
 
                 **Sample Size per Arm (Fixed-Horizon Power Equation):**
+
                 $$n^* = \frac{2 \left( z_{1 - \alpha/2} + z_{1 - \beta} \right)^2 \bar{p}(1 - \bar{p})}{\left(p_B - p_A\right)^2} = \frac{2 \left( z_{1 - \alpha/2} + z_{1 - \beta} \right)^2}{\text{CVR}_A \cdot \text{Lift}_{\text{rel}}^2} (1 - \bar{p})$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
@@ -1566,15 +1621,20 @@ with tab4:
                 | $\text{Lift}_{\text{rel}}$ | Minimum Detectable Effect | Target relative percentage lift $\frac{p_B - p_A}{p_A}$ the experiment is sized to detect. |
                 | $n^*$ | Required Sample per Arm | Minimum sample threshold required before evaluating the fixed-horizon Z-statistic. |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > Fixed-horizon tests represent a binding contract: evaluate only after collecting $n^*$ observations per arm. Stopping early invalidates the Type I error guarantee.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        Fixed-horizon tests represent a binding contract: evaluate only after collecting n* observations per arm. Stopping early invalidates the Type I error guarantee.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
         with m_tab7:
             st.markdown(
                 r"""
-                <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
                     Commercial ROI & Financial Breakeven Modeling (Kohavi et al., 2020)
                 </div>
                 <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 12px;">
@@ -1586,11 +1646,15 @@ with tab4:
             st.markdown(
                 r"""
                 **Annualized Commercial Impact Formulas:**
+
                 $$\Delta \text{Conversions} = \text{Annual Traffic} \times \left( \hat{p}_B - \hat{p}_A \right)$$
+
                 $$\Delta \text{Revenue} = \Delta \text{Conversions} \times \text{RevenuePerConversion}$$
 
                 **Net Commercial Payoff & Breakeven Horizon:**
+
                 $$\text{Net Payoff} = \Delta \text{Revenue} - \text{Cost}_{\text{setup}}$$
+
                 $$T_{\text{breakeven}} = \frac{\text{Cost}_{\text{setup}}}{\Delta \text{Revenue} / 365} \quad (\text{days until cumulative revenue exceeds setup cost})$$
 
                 | Symbol | Parameter Name | Mathematical Role in Inference |
@@ -1600,9 +1664,14 @@ with tab4:
                 | $\text{Cost}_{\text{setup}}$ | Engineering Expenditure | Fixed upfront cost for development, QA, and infrastructure deployment. |
                 | $T_{\text{breakeven}}$ | Breakeven Horizon | Payback period in days to recoup setup investment. |
 
-                > **💡 Why It Matters for Decision-Makers:**  
-                > Statistical significance is a necessary condition, not a sufficient one. An experiment showing statistically significant lift that requires 5 years to recover engineering costs is commercially negative-ROI and should not be rolled out.
-                """
+                <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                        Statistical significance is a necessary condition, not a sufficient one. An experiment showing statistically significant lift that requires 5 years to recover engineering costs is commercially negative-ROI and should not be rolled out.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
 # -----------------------------------------------------------------------------
