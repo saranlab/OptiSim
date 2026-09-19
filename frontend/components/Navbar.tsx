@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     { id: "hte_guardrails", label: "Subgroups & Guardrails", icon: ShieldCheck },
     { id: "or_knapsack", label: "0-1 Knapsack Lab", icon: Cpu },
     { id: "bandits", label: "Adaptive Routing", icon: Sliders },
-    { id: "memo", label: "Executive Board Memo", icon: FileText },
+    { id: "memo", label: "Decision Memo", icon: FileText },
   ];
 
   const presets = ["E-Commerce", "B2B SaaS", "Media", "Custom"];
