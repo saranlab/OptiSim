@@ -1,22 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #090d16;
-  --foreground: #f1f5f9;
-  --card-bg: #0f172a;
-  --card-border: #1e293b;
-  --card-hover: #1e293b;
-  --accent-blue: #3b82f6;
-  --accent-cyan: #06b6d4;
-  --accent-emerald: #10b981;
-  --accent-rose: #f43f5e;
-  --accent-amber: #f59e0b;
+  --background: #09090b;
+  --foreground: #ffffff;
+  --surface: rgba(255, 255, 255, 0.03);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --accent: #3b82f6;
+  --accent-muted: rgba(59, 130, 246, 0.15);
+  --muted: #71717a;
+  --muted-light: #a1a1aa;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -26,18 +24,39 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-/* Custom scrollbar */
+/* Minimalist scrollbar - borderless */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Print-to-PDF styles - clean vector output */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #09090b !important;
+  }
+  header, nav, aside, button, .no-print {
+    display: none !important;
+  }
+  .print-surface {
+    background-color: #ffffff !important;
+    color: #09090b !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  @page {
+    margin: 1.2cm;
+    size: A4 portrait;
+  }
 }

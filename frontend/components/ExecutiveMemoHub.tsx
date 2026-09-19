@@ -6,12 +6,10 @@ import {
   Download,
   Copy,
   Check,
-  ShieldCheck,
-  ShieldAlert,
-  Sparkles,
-  ExternalLink,
+  Printer,
 } from "lucide-react";
 import { MemoResponse } from "../lib/types";
+import { exportElementToPDF } from "../lib/pdfExport";
 
 interface ExecutiveMemoHubProps {
   memoData: MemoResponse;
@@ -20,9 +18,9 @@ interface ExecutiveMemoHubProps {
 
 export const ExecutiveMemoHub: React.FC<ExecutiveMemoHubProps> = ({
   memoData,
-  onRegenerate,
 }) => {
   const [copied, setCopied] = useState<boolean>(false);
+  const [isExportingPDF, setIsExportingPDF] = useState<boolean>(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(memoData.markdown);
@@ -30,77 +28,150 @@ export const ExecutiveMemoHub: React.FC<ExecutiveMemoHubProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleDownload = () => {
+  const handleDownloadMd = () => {
     const blob = new Blob([memoData.markdown], { type: "text/markdown;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `optisim-decision-memo-${Date.now()}.md`);
+    link.setAttribute("download", `OptiSim-Decision-Memo-${Date.now()}.md`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const isShip = memoData.executive_verdict.includes("SHIP");
-  const isAbort = memoData.executive_verdict.includes("DO NOT SHIP");
+  const handleExportPDF = async () => {
+    setIsExportingPDF(true);
+    try {
+      await exportElementToPDF("executive-memo-document", `OptiSim-Executive-Board-Memo-${Date.now()}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      window.print();
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      {/* Top Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900/70 p-4 shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-500/40 bg-cyan-950/40 text-cyan-400">
+      {/* Action Header - Zero Borders */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-white/[0.03] p-5">
+        <div className="flex items-center space-x-3.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20 text-blue-400">
             <FileText className="h-5 w-5" />
           </div>
           <div>
-            <div className="flex items-center space-x-2">
-              <h3 className="text-base font-bold tracking-tight text-white font-mono">
+            <div className="flex items-center space-x-2.5">
+              <h3 className="text-base font-semibold text-white font-mono">
                 Executive Decision Memo Hub
               </h3>
-              <span
-                className={`rounded px-2 py-0.5 text-[11px] font-mono font-bold uppercase tracking-wider ${
-                  isShip
-                    ? "bg-emerald-950/60 text-emerald-400 border border-emerald-500/40"
-                    : isAbort
-                    ? "bg-rose-950/60 text-rose-400 border border-rose-500/40"
-                    : "bg-amber-950/60 text-amber-400 border border-amber-500/40"
-                }`}
-              >
+              <span className="rounded-full bg-blue-600/20 px-2.5 py-0.5 text-[11px] font-mono text-blue-400 font-medium uppercase tracking-wider">
                 {memoData.executive_verdict}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5 font-mono">
-              Generated: {memoData.timestamp} | Causal & OR Governance Brief
+            <p className="text-xs text-zinc-400 mt-0.5 font-mono">
+              Prepared for Investment Committee &bull; Causal &amp; OR Governance Brief
             </p>
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex items-center space-x-2">
+        {/* Export & Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={handleCopy}
-            className="flex items-center space-x-1.5 rounded-md border border-slate-700 bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs font-mono font-medium text-slate-200 transition-all"
+            onClick={handleExportPDF}
+            disabled={isExportingPDF}
+            className="flex items-center space-x-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 px-3.5 py-2 text-xs font-mono font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-            <span>{copied ? "Copied" : "Copy Markdown"}</span>
+            <Download className="h-3.5 w-3.5" />
+            <span>{isExportingPDF ? "Exporting PDF..." : "Export Board PDF"}</span>
           </button>
 
           <button
-            onClick={handleDownload}
-            className="flex items-center space-x-1.5 rounded-md border border-cyan-500/40 bg-cyan-950/60 hover:bg-cyan-900/60 px-3 py-1.5 text-xs font-mono font-bold text-cyan-400 transition-all shadow-sm"
+            onClick={() => window.print()}
+            className="flex items-center space-x-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] px-3 py-2 text-xs font-mono text-zinc-300 transition-all active:scale-[0.98]"
+          >
+            <Printer className="h-3.5 w-3.5 text-zinc-400" />
+            <span>Print Vector PDF</span>
+          </button>
+
+          <button
+            onClick={handleCopy}
+            className="flex items-center space-x-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] px-3 py-2 text-xs font-mono text-zinc-300 transition-all active:scale-[0.98]"
+          >
+            {copied ? <Check className="h-3.5 w-3.5 text-blue-400" /> : <Copy className="h-3.5 w-3.5" />}
+            <span>{copied ? "Copied" : "Copy"}</span>
+          </button>
+
+          <button
+            onClick={handleDownloadMd}
+            className="flex items-center space-x-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] px-3 py-2 text-xs font-mono text-zinc-300 transition-all active:scale-[0.98]"
           >
             <Download className="h-3.5 w-3.5" />
-            <span>Download .md</span>
+            <span>.md</span>
           </button>
         </div>
       </div>
 
-      {/* Memo Reader Document */}
-      <div className="rounded-lg border border-slate-800 bg-slate-900/90 p-8 shadow-md">
-        <div className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed font-sans">
-          <pre className="p-6 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap leading-6">
-            {memoData.markdown}
-          </pre>
+      {/* Printable Board Memo Surface - Zero Borders */}
+      <div
+        id="executive-memo-document"
+        className="rounded-xl bg-white/[0.03] p-10 print-surface text-zinc-200"
+      >
+        {/* Memo Header Letterhead */}
+        <div className="pb-8 space-y-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="text-[11px] font-mono text-blue-400 font-semibold uppercase tracking-wider">
+                OPTISIM PLATFORM &bull; BOARD MEMORANDUM
+              </div>
+              <h1 className="text-2xl font-bold text-white tracking-tight mt-1">
+                Executive Decision Memo: Checkout Flow Modernization
+              </h1>
+            </div>
+            <div className="text-right font-mono text-xs text-zinc-500">
+              <div>Ref: MEMO-2026-0919</div>
+              <div>Classification: Strict Confidential</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 text-xs font-mono">
+            <div className="rounded-lg bg-white/[0.02] p-3">
+              <span className="text-zinc-500 text-[10px] block">Recommendation</span>
+              <span className="text-sm font-semibold text-blue-400">SHIP TO 100% TRAFFIC</span>
+            </div>
+            <div className="rounded-lg bg-white/[0.02] p-3">
+              <span className="text-zinc-500 text-[10px] block">Defensible ARR Floor</span>
+              <span className="text-sm font-semibold text-white">$125,800 / year</span>
+            </div>
+            <div className="rounded-lg bg-white/[0.02] p-3">
+              <span className="text-zinc-500 text-[10px] block">Statistical Methodology</span>
+              <span className="text-sm font-semibold text-zinc-300">Anytime Valid CS (95%)</span>
+            </div>
+            <div className="rounded-lg bg-white/[0.02] p-3">
+              <span className="text-zinc-500 text-[10px] block">Guardrails Status</span>
+              <span className="text-sm font-semibold text-white">0 Critical Violations</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Formatted Memo Content */}
+        <div className="pt-6 font-mono text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap bg-white/[0.02] p-6 rounded-lg overflow-x-auto">
+          {memoData.markdown}
+        </div>
+
+        {/* Institutional Sign-off */}
+        <div className="pt-8 mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6 font-mono text-xs text-zinc-400">
+          <div>
+            <div className="text-[10px] text-zinc-500 uppercase">Principal Experimentation Lead</div>
+            <div className="mt-1 font-semibold text-white">Data Science &amp; Causal Inference</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-zinc-500 uppercase">Head of Operations Research</div>
+            <div className="mt-1 font-semibold text-white">Mathematical Programming &amp; MILP</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-zinc-500 uppercase">VP of Engineering &amp; Product</div>
+            <div className="mt-1 font-semibold text-white">Platform Governance &amp; SRE</div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,106 +1,101 @@
 "use client";
 
 import React from "react";
-import { Activity, Cpu, Layers, FileText, BarChart3, Sliders, ShieldCheck } from "lucide-react";
+import {
+  Activity,
+  Cpu,
+  FileText,
+  Sliders,
+  ShieldCheck,
+  Download,
+} from "lucide-react";
 
 interface NavbarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   isBackendConnected: boolean;
+  onExportPDF: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   setActiveTab,
   isBackendConnected,
+  onExportPDF,
 }) => {
-  const navItems = [
-    {
-      id: "experiment",
-      label: "Experiment Studio",
-      icon: Activity,
-      badge: "Causal & Sequential",
-    },
-    {
-      id: "portfolio",
-      label: "OR Knapsack Lab",
-      icon: Cpu,
-      badge: "MILP HiGHS",
-    },
-    {
-      id: "bandits",
-      label: "Adaptive Personalization",
-      icon: Sliders,
-      badge: "Thompson / LinUCB",
-    },
-    {
-      id: "memo",
-      label: "Executive Memo Hub",
-      icon: FileText,
-      badge: "Governance Brief",
-    },
+  const tabs = [
+    { id: "inference", label: "Inference & Sequential CS", icon: Activity },
+    { id: "hte_guardrails", label: "Subgroups & Guardrails", icon: ShieldCheck },
+    { id: "or_knapsack", label: "0-1 Knapsack Lab", icon: Cpu },
+    { id: "bandits", label: "Adaptive Routing", icon: Sliders },
+    { id: "memo", label: "Executive Board Memo", icon: FileText },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-950/90 backdrop-blur-md px-6 py-3.5">
-      <div className="mx-auto flex max-w-7xl items-center justify-between">
-        {/* Brand identity */}
-        <div className="flex items-center space-x-3.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md border border-cyan-500/40 bg-cyan-950/40 text-cyan-400 shadow-sm shadow-cyan-900/30">
-            <Layers className="h-5 w-5" />
+    <header className="sticky top-0 z-50 w-full bg-[#09090b]/95 backdrop-blur-xl">
+      {/* Top Brand Bar - No Borders */}
+      <div className="mx-auto flex max-w-[1550px] items-center justify-between px-8 py-3.5">
+        {/* Brand */}
+        <div className="flex items-center space-x-3 text-xs font-mono">
+          <div className="flex items-center space-x-2">
+            <span className="h-2 w-2 rounded-full bg-blue-500" />
+            <span className="text-zinc-400">saranlab</span>
+            <span className="text-zinc-600">/</span>
+            <span className="font-semibold text-white tracking-tight">OptiSim</span>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-mono text-base font-bold tracking-tight text-white">
-                OptiSim
-              </span>
-              <span className="rounded border border-slate-700 bg-slate-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                v2.0 Enterprise
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 font-medium">
-              Causal Inference & Operations Research Optimization
-            </p>
-          </div>
+
+          <span className="rounded-full bg-white/[0.05] px-2.5 py-0.5 text-[10px] text-zinc-400 font-mono">
+            checkout-flow-v2
+          </span>
         </div>
 
-        {/* Primary View Switcher */}
-        <nav className="flex items-center space-x-1 rounded-lg border border-slate-800 bg-slate-900/90 p-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+        {/* Right Actions */}
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={onExportPDF}
+            className="flex items-center space-x-2 rounded-full bg-white/[0.06] hover:bg-white/[0.1] px-3.5 py-1.5 text-xs font-mono font-medium text-white transition-all active:scale-[0.98]"
+          >
+            <Download className="h-3.5 w-3.5 text-blue-400" />
+            <span>Export Board Memo (PDF)</span>
+          </button>
+
+          <div className="flex items-center space-x-2 rounded-full bg-white/[0.03] px-3 py-1 text-[11px] font-mono text-zinc-400">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isBackendConnected ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" : "bg-zinc-600"
+              }`}
+            />
+            <span>{isBackendConnected ? "Engine Online" : "Local Mode"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Modern Minimal Navigation Bar - Zero Borders */}
+      <div className="mx-auto max-w-[1550px] px-8 pb-2">
+        <nav className="flex space-x-1 overflow-x-auto scrollbar-none">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
             return (
               <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center space-x-2 rounded-md px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center space-x-2 rounded-lg px-3.5 py-2 text-xs font-medium transition-all ${
                   isActive
-                    ? "border border-cyan-500/30 bg-slate-800 text-white shadow-sm"
-                    : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                    ? "bg-white/[0.08] text-white shadow-sm"
+                    : "text-zinc-400 hover:text-white hover:bg-white/[0.03]"
                 }`}
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-cyan-400" : "text-slate-500"}`} />
-                <span>{item.label}</span>
+                <Icon
+                  className={`h-3.5 w-3.5 ${
+                    isActive ? "text-blue-400" : "text-zinc-500"
+                  }`}
+                />
+                <span>{tab.label}</span>
               </button>
             );
           })}
         </nav>
-
-        {/* Engine status indicator */}
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 rounded-md border border-slate-800 bg-slate-900/80 px-2.5 py-1 text-xs">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                isBackendConnected
-                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse"
-                  : "bg-amber-400"
-              }`}
-            />
-            <span className="font-mono text-[11px] text-slate-300">
-              {isBackendConnected ? "REST Engine Online" : "Demo Mode (Mock)"}
-            </span>
-          </div>
-        </div>
       </div>
     </header>
   );
