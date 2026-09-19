@@ -9,7 +9,6 @@ import {
   Printer,
   Code2,
   Eye,
-  Sparkles,
 } from "lucide-react";
 import { MemoResponse } from "../lib/types";
 import { exportElementToPDF, generatePDFBlob } from "../lib/pdfExport";
@@ -29,95 +28,72 @@ export const ExecutiveMemoHub: React.FC<ExecutiveMemoHubProps> = ({
   const [isGeneratingEmbed, setIsGeneratingEmbed] = useState<boolean>(false);
   const [pdfEmbedUrl, setPdfEmbedUrl] = useState<string | null>(null);
 
-  // Generate authentic compilable LaTeX source code
-  const latexSourceCode = `\\documentclass[11pt, a4paper]{article}
-\\usepackage[margin=1in]{geometry}
+  // Clean, 1-Page compilable LaTeX code
+  const latexSourceCode = `\\documentclass[10pt, a4paper]{article}
+\\usepackage[margin=0.7in]{geometry}
 \\usepackage{amsmath, amssymb}
 \\usepackage{booktabs}
 \\usepackage{tabularx}
 \\usepackage{xcolor}
-\\usepackage{microtype}
 
 \\title{\\textbf{Decision Memorandum: Checkout Flow Modernization}\\\\
-\\large \\textsf{OptiSim Causal Inference \\& Operations Research Governance Engine}}
+\\large \\textsf{OptiSim Causal Inference \\& Operations Research Governance Platform}}
 \\author{\\textbf{Platform Governance Board}}
 \\date{${memoData.timestamp}}
 
 \\begin{document}
 \\maketitle
+\\thispagestyle{empty}
 
 \\begin{abstract}
-This memorandum formalizes the causal evaluation and combinatorial capital allocation for the Checkout Flow Modernization experiment. Using anytime-valid confidence sequences (Waudby-Smith \\& Ramdas, 2021) to eliminate dashboard peeking bias, paired with Benjamini-Hochberg FDR multiplicity control, we establish that Variant B yields an operationally safe, defensible conversion lift. Combinatorial feature deployment is solved via 0-1 Knapsack Mixed-Integer Linear Programming (MILP).
+\\noindent This memorandum formalizes the causal evaluation and combinatorial capital allocation for the Checkout Flow Modernization experiment. Using anytime-valid confidence sequences (Waudby-Smith \\& Ramdas, 2021) to eliminate peeking bias, coupled with Benjamini-Hochberg FDR multiplicity control, we establish that Variant B yields a statistically significant, operationally safe conversion lift. Combinatorial feature deployment is solved via 0-1 Knapsack Mixed-Integer Linear Programming (MILP).
 \\end{abstract}
 
-\\section{Executive Verdict \\& Board Recommendation}
-\\begin{itemize}
-  \\item \\textbf{Actionable Verdict:} \\textsc{${memoData.executive_verdict}}
-  \\item \\textbf{Defensible ARR Floor:} \\$125,800 / year (audited 95\\% anytime confidence lower bound)
-  \\item \\textbf{Statistical Confidence:} 95\\% Anytime-Valid Confidence Sequence (peeking-proof)
-  \\item \\textbf{Operational Risk:} 0 Critical Guardrail Violations (Benjamini-Hochberg FDR $\\alpha = 0.05$)
-  \\item \\textbf{Capital Policy:} Prioritized under HiGHS 1.8 Mixed-Integer Linear Programming knapsack.
-\\end{itemize}
-
-\\section{Causal Inference \\& Time-Uniform Confidence Sequences}
-The primary metric (Checkout Conversion Rate) is monitored via an empirical Bernstein confidence sequence:
-\\begin{equation}
-  \\mathbb{P}\\left( \\forall n \\ge 1,\\; \\tau^* \\in [L_n, U_n] \\right) \\ge 1 - \\alpha
-\\end{equation}
-where the anytime confidence sequence is constructed as:
-\\begin{equation}
-  L_n = \\hat{\\tau}_n - \\frac{\\lambda_n v_n + \\psi_E(\\lambda_n)}{n}, \\quad U_n = \\hat{\\tau}_n + \\frac{\\lambda_n v_n + \\psi_E(\\lambda_n)}{n}
-\\end{equation}
-Unlike fixed-horizon tests where continuous dashboard peeking inflates false positive rates to $>25\\%$, the anytime sequence guarantees time-uniform coverage bounded at $\\alpha = 0.05$ across all $n \\in [1, 24000]$.
-
+\\section*{1. Executive Verdict \\& Primary Causal Evidence}
 \\begin{table}[h!]
 \\centering
 \\begin{tabularx}{\\textwidth}{l r r r}
 \\toprule
-\\textbf{Cohort / Metric} & \\textbf{Control (A)} & \\textbf{Treatment (B)} & \\textbf{Relative Uplift (95\\% CS)} \\\\
+\\textbf{Cohort / Metric} & \\textbf{Control (A)} & \\textbf{Treatment (B)} & \\textbf{Relative Uplift [95\\% CS]} \\\\
 \\midrule
-Checkout Conversion Rate & 10.42\\% & 11.85\\% & +13.72\\% [+0.71\\%, +2.15\\%] \\\\
-Sample Size ($n$) & 12,000 & 12,000 & 24,000 observations \\\\
-Bayesian Posterior $P(B > A)$ & -- & -- & 99.2\\% ($L(\\tau) = 0.00012$) \\\\
+Checkout Conversion Rate & 10.42\\% & 11.85\\% & \\textbf{+13.72\\% [+0.71\\%, +2.15\\%]} \\\\
+Sample Size ($n$) & 12,000 & 12,000 & 24,000 Total Observations \\\\
+Bayesian Posterior $P(B > A)$ & -- & -- & 99.2\\% ($L(\\tau) = 0.00012\\text{ pp}$) \\\\
+Defensible Net ARR Floor & -- & -- & \\$125,800 / year (Audited Lower Bound) \\\\
 \\bottomrule
 \\end{tabularx}
-\\caption{Primary Causal Metric & Anytime-Valid Bounds}
 \\end{table}
 
-\\section{Pre-Experiment Variance Reduction (CUPED)}
-To accelerate experiment runtime and tighten confidence intervals without introducing bias:
-\\begin{equation}
-  Y_{\\text{CUPED}} = Y - \\theta^* (X - \\mathbb{E}[X]), \\quad \\theta^* = \\frac{\\text{Cov}(Y, X)}{\\text{Var}(X)}
-\\end{equation}
-Variance is reduced proportional to the pre-experiment covariate correlation $\\rho$:
-\\begin{equation}
-  \\text{Var}(Y_{\\text{CUPED}}) = \\text{Var}(Y)(1 - \\rho^2)
-\\end{equation}
-Yielding a 31.4\\% variance reduction and an equivalent 31.4\\% reduction in required sample duration.
+\\section*{2. Mathematical Rigor \\& Variance Reduction}
+\\noindent\\textbf{Anytime-Valid Confidence Sequences:}
+\\begin{equation*}
+  \\mathbb{P}\\left( \\forall n \\ge 1,\\; \\tau^* \\in [L_n, U_n] \\right) \\ge 1 - \\alpha, \\quad
+  L_n, U_n = \\hat{\\tau}_n \\pm \\frac{\\lambda_n v_n + \\psi_E(\\lambda_n)}{n}
+\\end{equation*}
+Guarantees uniform nominal $95\\%$ coverage across all sample sizes without inflation from continuous monitoring.
 
-\\section{Operational Guardrails Audit (FDR Multiplicity Control)}
-Secondary metrics evaluated under the Benjamini-Hochberg step-up procedure:
-\\begin{equation}
-  k = \\max \\left\\{ i : P_{(i)} \\le \\frac{i}{m} \\alpha_{\\text{FDR}} \\right\\}
-\\end{equation}
-All secondary operational telemetry (p95 latency, error rates, and 30-day retention) remained within prescribed tolerance bounds with zero critical regressions.
+\\noindent\\textbf{CUPED Variance Reduction (Deng et al., 2013):}
+\\begin{equation*}
+  Y_{\\text{CUPED}} = Y - \\theta^*(X - \\mathbb{E}[X]), \\quad \\text{Var}(Y_{\\text{CUPED}}) = \\text{Var}(Y)(1 - \\rho^2)
+\\end{equation*}
+Covariate correlation $\\rho = 0.560$ delivers a $31.4\\%$ variance reduction and $31.4\\%$ faster experiment runtime.
 
-\\section{Combinatorial Capital Allocation (0-1 Knapsack MILP)}
-\\begin{equation}
-  \\max_{\\mathbf{x} \\in \\{0, 1\\}^n} \\sum_{i=1}^n \\left( v_i^{\\text{floor}} - w_{\\text{churn}} C_i^{\\text{churn}} \\right) x_i
-\\end{equation}
-Subject to operational SLA constraints:
-\\begin{align*}
-  \\sum_{i=1}^n c_i x_i &\\le \\text{Budget SLA} \\quad (\\$10,000) \\\\
-  \\sum_{i=1}^n \\ell_i x_i &\\le \\text{Latency SLA} \\quad (50\\text{ ms}) \\\\
-  \\sum_{i=1}^n e_i x_i &\\le \\text{Sprint Capacity} \\quad (40\\text{ story points})
-\\end{align*}
+\\section*{3. Operational Guardrails \\& Capital Allocation}
+\\noindent\\textbf{Benjamini-Hochberg FDR Step-Up Procedure:}
+\\begin{equation*}
+  k = \\max \\left\\{ i : P_{(i)} \\le \\frac{i}{m} \\alpha_{\\text{FDR}} \\right\\} \\implies 0\\text{ Critical Violations}
+\\end{equation*}
 
-\\section{Sign-Off \\& Governance Approval}
-\\noindent
-\\textbf{Data Science \\& Causal Inference Lead:} \\textit{Approved} \\\\
-\\textbf{Operations Research \\& Optimization Lead:} \\textit{Approved} \\\\
-\\textbf{VP of Engineering \\& Platform Governance:} \\textit{Approved}
+\\noindent\\textbf{0-1 Knapsack Mixed-Integer Linear Program (HiGHS 1.8):}
+\\begin{equation*}
+  \\max_{\\mathbf{x} \\in \\{0, 1\\}^n} \\sum_{i=1}^n \\left( v_i^{\\text{floor}} - w_{\\text{churn}} C_i^{\\text{churn}} \\right) x_i \\quad \\text{s.t.} \\quad \\sum c_i x_i \\le \\mathcal{B},\\; \\sum \\ell_i x_i \\le \\mathcal{L},\\; \\sum e_i x_i \\le \\mathcal{E}
+\\end{equation*}
+
+\\vspace{0.8cm}
+\\noindent\\begin{tabularx}{\\textwidth}{X X X}
+\\textbf{Causal Inference Lead} & \\textbf{Operations Research Lead} & \\textbf{VP of Engineering} \\\\
+Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% Rollout) \\\\
+\\end{tabularx}
 
 \\end{document}`;
 
@@ -138,11 +114,11 @@ Subject to operational SLA constraints:
     }
   };
 
-  // Download PDF
+  // Download 1-Page PDF
   const handleDownloadPDF = async () => {
     setIsExportingPDF(true);
     try {
-      await exportElementToPDF("memo-rendered-paper", `OptiSim-Decision-Memo-${Date.now()}.pdf`);
+      await exportElementToPDF("memo-rendered-paper", `OptiSim-1Page-Decision-Memo-${Date.now()}.pdf`);
     } catch (err) {
       console.error("PDF export failed:", err);
       window.print();
@@ -171,17 +147,17 @@ Subject to operational SLA constraints:
 
   return (
     <div className="space-y-6">
-      {/* Top Action Header - Clean, No Jargon */}
+      {/* Top Action Header - Clean, Zero Jargon */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-white/[0.03] p-5 sm:p-6">
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base font-semibold text-white">Decision Memorandum Hub</h2>
             <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[10px] font-mono text-zinc-300">
-              LaTeX KaTeX Typeset
+              1-Page A4 Executive Standard
             </span>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Institutional decision memorandum with real mathematical typesetting and compile-ready LaTeX export.
+            Single-page A4 board memorandum with authentic KaTeX mathematical typesetting and compile-ready LaTeX export.
           </p>
         </div>
 
@@ -198,7 +174,7 @@ Subject to operational SLA constraints:
               }`}
             >
               <FileText className="h-3.5 w-3.5" />
-              <span>A4 Paper</span>
+              <span>1-Page A4</span>
             </button>
             <button
               onClick={handleLoadPdfEmbed}
@@ -231,7 +207,7 @@ Subject to operational SLA constraints:
             className="flex items-center space-x-1.5 rounded-xl bg-white hover:bg-zinc-200 px-4 py-2 text-xs font-mono font-semibold text-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
           >
             <Download className="h-3.5 w-3.5 text-black" />
-            <span>{isExportingPDF ? "Exporting..." : "Download PDF"}</span>
+            <span>{isExportingPDF ? "Exporting..." : "Download 1-Page PDF"}</span>
           </button>
 
           <button
@@ -253,230 +229,212 @@ Subject to operational SLA constraints:
         </div>
       </div>
 
-      {/* VIEW 1: Formal LaTeX-Styled White A4 Document Sheet (Overleaf / Publication Grade) */}
+      {/* VIEW 1: STRICT 1-PAGE A4 DOCUMENT SHEET (Publication Grade Overleaf Aesthetic) */}
       <div className={viewMode === "document" ? "block" : "fixed -left-[9999px] top-0 pointer-events-none"}>
         <div
           id="memo-rendered-paper"
-          className="w-full max-w-[850px] mx-auto bg-white text-slate-900 rounded-sm shadow-2xl p-8 sm:p-14 space-y-7 font-serif select-text"
-          style={{ minHeight: "1150px" }}
+          className="w-full max-w-[794px] mx-auto bg-white text-slate-900 rounded-sm shadow-2xl p-7 sm:p-9 font-serif select-text flex flex-col justify-between"
+          style={{
+            aspectRatio: "210 / 297",
+            minHeight: "1050px",
+            maxHeight: "1123px",
+            boxSizing: "border-box",
+            overflow: "hidden",
+          }}
         >
-          {/* Formal Letterhead */}
-          <div className="border-b-2 border-slate-900 pb-5 space-y-3">
-            <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
+          {/* Top Letterhead */}
+          <div className="border-b-2 border-slate-900 pb-3 space-y-1.5">
+            <div className="flex justify-between items-start">
               <div>
-                <div className="text-[10px] font-mono tracking-widest text-slate-500 uppercase font-semibold">
-                  OPTISIM RESEARCH &bull; INSTITUTIONAL DECISION MEMORANDUM
+                <div className="text-[9px] font-mono tracking-widest text-slate-500 uppercase font-semibold">
+                  OPTISIM PLATFORM &bull; MEMORANDUM OF DECISION
                 </div>
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-950 font-sans tracking-tight mt-1">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-950 font-sans tracking-tight">
                   Decision Memorandum: Checkout Flow Modernization
                 </h1>
-                <div className="text-xs text-slate-600 font-sans mt-0.5">
+                <div className="text-[11px] text-slate-600 font-sans">
                   Platform Governance Board &bull; Causal Inference &amp; Operations Research
                 </div>
               </div>
-              <div className="sm:text-right font-mono text-xs text-slate-600 space-y-0.5">
+              <div className="text-right font-mono text-[10px] text-slate-600 space-y-0.5">
                 <div><strong>Ref:</strong> OPTISIM-MEMO-2026-0919</div>
                 <div><strong>Date:</strong> {memoData.timestamp}</div>
-                <div><strong>Classification:</strong> Board Confidential</div>
+                <div><strong>Class:</strong> Board Confidential</div>
               </div>
             </div>
 
-            {/* Formal Executive Metric Bar - LaTeX Booktabs Style */}
-            <div className="border-t border-slate-300 pt-3 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+            {/* Executive 4-Metric Grid */}
+            <div className="border-t border-slate-300 pt-2 grid grid-cols-4 gap-2 text-xs font-mono">
               <div>
-                <span className="text-slate-500 text-[10px] uppercase block">Actionable Verdict</span>
-                <span className="text-sm font-bold text-slate-950">SHIP 100% TRAFFIC</span>
+                <span className="text-slate-500 text-[9px] uppercase block">Actionable Verdict</span>
+                <span className="text-xs font-bold text-slate-950">SHIP 100% TRAFFIC</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase block">Defensible Net ARR</span>
-                <span className="text-sm font-bold text-slate-950">$125,800 / year</span>
+                <span className="text-slate-500 text-[9px] uppercase block">Defensible Net ARR</span>
+                <span className="text-xs font-bold text-slate-950">$125,800 / year</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase block">Statistical Sequence</span>
-                <span className="text-sm font-semibold text-slate-800">95% Anytime CS</span>
+                <span className="text-slate-500 text-[9px] uppercase block">Anytime Lift</span>
+                <span className="text-xs font-semibold text-slate-800">+1.43 pp (+13.7%)</span>
               </div>
               <div>
-                <span className="text-slate-500 text-[10px] uppercase block">Operational FDR</span>
-                <span className="text-sm font-semibold text-slate-800">0 Critical Breaches</span>
+                <span className="text-slate-500 text-[9px] uppercase block">FDR Risk</span>
+                <span className="text-xs font-semibold text-slate-800">0 Critical Violations</span>
               </div>
             </div>
           </div>
 
-          {/* Abstract */}
-          <div className="bg-slate-50 border-l-2 border-slate-900 p-4 text-xs sm:text-sm text-slate-700 italic leading-relaxed font-serif">
-            <strong>Executive Abstract:</strong> This memorandum formalizes the causal evaluation and combinatorial capital allocation for the Checkout Flow Modernization experiment. Using anytime-valid confidence sequences to eliminate dashboard peeking bias, coupled with Benjamini-Hochberg FDR-controlled operational guardrails, we establish that Variant B yields a statistically significant, operationally safe conversion lift. A prioritized deployment roadmap is formulated via 0-1 Knapsack Mixed-Integer Linear Programming.
-          </div>
-
-          {/* Section 1: Executive Verdict & Primary Causal Evidence */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
-              1. Executive Verdict &amp; Primary Causal Lift
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
-              Based on empirical data gathered across 24,000 total observations, <strong>Variant B</strong> achieves an absolute conversion rate increase of <strong>+1.43 percentage points</strong> (relative lift of <strong>+13.72%</strong>). The 95% anytime confidence sequence strictly excludes the null hypothesis:
+          {/* Section 1: Executive Summary & Evidence Table */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-baseline border-b border-slate-200 pb-1">
+              <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide">
+                1. Executive Verdict &amp; Primary Causal Evidence
+              </h2>
+              <span className="text-[10px] font-mono text-slate-500">24,000 Observations</span>
+            </div>
+            <p className="text-[11px] text-slate-700 leading-snug">
+              Across 24,000 total users, <strong>Variant B</strong> demonstrates a statistically verified conversion uplift of <strong>+1.43 percentage points</strong> (relative lift <strong>+13.72%</strong>). The 95% anytime confidence sequence strictly excludes the null hypothesis:
             </p>
 
             {/* LaTeX Booktabs Table */}
-            <div className="overflow-x-auto w-full pt-1">
-              <table className="w-full text-xs font-mono border-collapse">
-                <thead>
-                  <tr className="border-t-2 border-b border-slate-900 text-slate-700">
-                    <th className="py-2 px-3 text-left font-semibold">Cohort / Metric</th>
-                    <th className="py-2 px-3 text-right font-semibold">Control (A)</th>
-                    <th className="py-2 px-3 text-right font-semibold">Treatment (B)</th>
-                    <th className="py-2 px-3 text-right font-semibold">Relative Uplift [95% CS]</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 text-slate-800">
-                  <tr>
-                    <td className="py-2 px-3 text-left font-medium">Checkout Conversion Rate</td>
-                    <td className="py-2 px-3 text-right">10.42%</td>
-                    <td className="py-2 px-3 text-right font-semibold">11.85%</td>
-                    <td className="py-2 px-3 text-right font-bold text-slate-950">+13.72% [+0.71%, +2.15%]</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-left font-medium">Sample Size (Users)</td>
-                    <td className="py-2 px-3 text-right">12,000</td>
-                    <td className="py-2 px-3 text-right">12,000</td>
-                    <td className="py-2 px-3 text-right">24,000 Total Observations</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2 px-3 text-left font-medium">Bayesian Posterior P(B &gt; A)</td>
-                    <td className="py-2 px-3 text-right">--</td>
-                    <td className="py-2 px-3 text-right">--</td>
-                    <td className="py-2 px-3 text-right font-semibold">99.2% (Expected Loss: 0.00012 pp)</td>
-                  </tr>
-                </tbody>
-                <tfoot>
-                  <tr className="border-b-2 border-slate-900">
-                    <td colSpan={4} className="py-1 text-[11px] text-slate-500 italic">
-                      Note: Confidence sequence bounds maintain uniform validity under continuous inspection.
-                    </td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <table className="w-full text-[11px] font-mono border-collapse">
+              <thead>
+                <tr className="border-t-2 border-b border-slate-900 text-slate-700">
+                  <th className="py-1 px-2 text-left font-semibold">Cohort / Metric</th>
+                  <th className="py-1 px-2 text-right font-semibold">Control (A)</th>
+                  <th className="py-1 px-2 text-right font-semibold">Treatment (B)</th>
+                  <th className="py-1 px-2 text-right font-semibold">Relative Uplift [95% CS]</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 text-slate-800">
+                <tr>
+                  <td className="py-1 px-2 text-left font-medium">Checkout Conversion Rate</td>
+                  <td className="py-1 px-2 text-right">10.42%</td>
+                  <td className="py-1 px-2 text-right font-semibold">11.85%</td>
+                  <td className="py-1 px-2 text-right font-bold text-slate-950">+13.72% [+0.71%, +2.15%]</td>
+                </tr>
+                <tr>
+                  <td className="py-1 px-2 text-left font-medium">Sample Size (Users)</td>
+                  <td className="py-1 px-2 text-right">12,000</td>
+                  <td className="py-1 px-2 text-right">12,000</td>
+                  <td className="py-1 px-2 text-right">24,000 Total Observations</td>
+                </tr>
+                <tr>
+                  <td className="py-1 px-2 text-left font-medium">Bayesian Posterior P(B &gt; A)</td>
+                  <td className="py-1 px-2 text-right">--</td>
+                  <td className="py-1 px-2 text-right">--</td>
+                  <td className="py-1 px-2 text-right font-semibold">99.2% (Expected Loss: 0.00012 pp)</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr className="border-b-2 border-slate-900">
+                  <td colSpan={4} className="py-0.5 text-[9px] text-slate-500 italic">
+                    Note: Confidence sequence bounds maintain uniform validity under continuous monitoring.
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
 
-          {/* Section 2: Mathematical Rigor - Real LaTeX Equations */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
-              2. Mathematical Rigor &amp; Anytime Confidence Sequences
+          {/* Section 2: Mathematical Rigor & Variance Reduction (2 Balanced Columns) */}
+          <div className="space-y-1.5">
+            <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
+              2. Statistical Rigor &amp; Variance Reduction
             </h2>
-            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
-              Unlike traditional fixed-horizon Wald confidence intervals that suffer from inflated false positive rates (&gt;25%) when inspected continuously, OptiSim employs time-uniform confidence sequences (Waudby-Smith &amp; Ramdas, 2021):
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+              {/* Column A: Anytime Sequence */}
+              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+                <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
+                  Anytime Confidence Sequences (Waudby-Smith &amp; Ramdas, 2021)
+                </div>
+                <LatexMath
+                  block
+                  math="\mathbb{P}\left(\forall n \ge 1, \; \tau^* \in [L_n, U_n]\right) \ge 1 - \alpha"
+                />
+                <p className="text-[10px] text-slate-600 leading-snug">
+                  Time-uniform 95% coverage eliminates peeking bias, bounding Type I error at &alpha; = 0.05 across all sample sizes.
+                </p>
+              </div>
 
-            <div className="bg-slate-50 p-4 rounded-sm border border-slate-200 text-slate-900">
-              <LatexMath
-                block
-                math="\mathbb{P}\left(\forall n \ge 1, \; \tau^* \in [L_n, U_n]\right) \ge 1 - \alpha"
-              />
-              <p className="text-xs text-slate-600 text-center mt-1">
-                Where empirical predictable mixture boundaries are computed sequentially as:
-              </p>
-              <LatexMath
-                block
-                math="L_n = \hat{\tau}_n - \frac{\lambda_n v_n + \psi_E(\lambda_n)}{n}, \quad U_n = \hat{\tau}_n + \frac{\lambda_n v_n + \psi_E(\lambda_n)}{n}"
-              />
-            </div>
-          </div>
-
-          {/* Section 3: Pre-Experiment Variance Reduction (CUPED) */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
-              3. Pre-Experiment Covariate Adjustment (CUPED)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
-              Using pre-experiment conversion behavior as an unconfounded baseline covariate, CUPED adjusts the estimator to strip natural user variance:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-sm border border-slate-200 text-slate-900">
-              <LatexMath
-                block
-                math="Y_{\text{CUPED}} = Y - \theta^*(X - \mathbb{E}[X]), \quad \text{where } \theta^* = \frac{\text{Cov}(Y, X)}{\text{Var}(X)}"
-              />
-              <LatexMath
-                block
-                math="\text{Var}(Y_{\text{CUPED}}) = \text{Var}(Y)(1 - \rho^2)"
-              />
-              <div className="text-xs text-slate-600 font-mono text-center mt-2">
-                Covariance Multiplier &theta; = 0.5240 &bull; Correlation &rho; = 0.560 &bull; <strong>Variance Reduction: -31.4%</strong> (31.4% Runtime Savings)
+              {/* Column B: CUPED Variance Reduction */}
+              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+                <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
+                  CUPED Variance Reduction (Deng et al., 2013)
+                </div>
+                <LatexMath
+                  block
+                  math="Y_{\text{CUPED}} = Y - \theta^*(X - \mathbb{E}[X]), \quad \text{Var} = (1 - \rho^2)\text{Var}(Y)"
+                />
+                <p className="text-[10px] text-slate-600 leading-snug">
+                  Covariate correlation &rho; = 0.560 yields a <strong>-31.4% variance reduction</strong>, enabling 31.4% faster experimentation.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Section 4: Operational Safety Guardrails (Benjamini-Hochberg FDR) */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
-              4. Operational Safety Guardrails (Multiplicity Control)
+          {/* Section 3: Operational Guardrails & Capital Optimization (2 Balanced Columns) */}
+          <div className="space-y-1.5">
+            <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
+              3. Operational Guardrails &amp; Capital Optimization
             </h2>
-            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
-              Secondary system metrics (P95 Latency, Checkout Error Rate, 30-Day Retention) were audited under the Benjamini-Hochberg step-up procedure at False Discovery Rate:
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
+              {/* Column A: Benjamini-Hochberg FDR */}
+              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+                <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
+                  Benjamini-Hochberg Multi-Metric FDR Control
+                </div>
+                <LatexMath
+                  block
+                  math="k = \max \left\{ i : P_{(i)} \le \frac{i}{m} \alpha_{\text{FDR}} \right\}"
+                />
+                <p className="text-[10px] text-slate-600 leading-snug">
+                  Multiplicity adjustment preserves false discovery rate. P95 latency +12ms remains comfortably within 250ms SLA.
+                </p>
+              </div>
 
-            <div className="bg-slate-50 p-3 rounded-sm border border-slate-200 text-slate-900">
-              <LatexMath
-                block
-                math="k = \max \left\{ i : P_{(i)} \le \frac{i}{m} \alpha_{\text{FDR}} \right\}, \quad \mathbb{E}\left[\frac{\text{False Discoveries}}{\max(1, \text{Total Discoveries})}\right] \le \alpha_{\text{FDR}}"
-              />
-              <p className="text-xs text-slate-700 text-center font-mono mt-1">
-                Audit Result: 0 Critical Violations. P95 latency +12ms within 250ms tolerance ceiling.
-              </p>
+              {/* Column B: 0-1 Knapsack MILP */}
+              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+                <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
+                  HiGHS 1.8 Mixed-Integer Linear Program (MILP)
+                </div>
+                <LatexMath
+                  block
+                  math="\max_{\mathbf{x} \in \{0, 1\}^n} \sum_{i=1}^n \left( v_i^{\text{floor}} - w_{\text{churn}} C_i \right) x_i \quad \text{s.t.} \quad \mathbf{A}\mathbf{x} \le \mathbf{b}"
+                />
+                <p className="text-[10px] text-slate-600 leading-snug">
+                  Solved to optimality in 12ms under $10k budget, 50ms latency, and sprint capacity limits.
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Section 5: Combinatorial Capital Allocation (HiGHS 0-1 Knapsack MILP) */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
-              5. Combinatorial Capital Allocation (Operations Research Knapsack)
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-800 leading-relaxed">
-              The checkout release was prioritized within our multi-feature portfolio by solving an exact 0-1 Knapsack Mixed-Integer Linear Program using HiGHS 1.8:
-            </p>
-
-            <div className="bg-slate-50 p-4 rounded-sm border border-slate-200 text-slate-900">
-              <LatexMath
-                block
-                math="\max_{\mathbf{x} \in \{0, 1\}^n} \sum_{i=1}^n \left( v_i^{\text{floor}} - w_{\text{churn}} C_i^{\text{churn}} \right) x_i"
-              />
-              <p className="text-xs text-slate-600 text-center my-1 font-serif italic">
-                Subject to simultaneous multi-dimensional operational SLA constraints:
-              </p>
-              <LatexMath
-                block
-                math="\sum_{i=1}^n c_i x_i \le \mathcal{B}_{\text{max}} \quad (\text{Budget}), \quad \sum_{i=1}^n \ell_i x_i \le \mathcal{L}_{\text{max}} \quad (\text{Latency}), \quad \sum_{i=1}^n e_i x_i \le \mathcal{E}_{\text{max}} \quad (\text{Sprint Effort})"
-              />
-            </div>
-          </div>
-
-          {/* Section 6: Formal Sign-off Block */}
-          <div className="pt-8 border-t-2 border-slate-900 grid grid-cols-1 sm:grid-cols-3 gap-6 font-mono text-xs text-slate-600">
+          {/* Bottom Sign-off Block */}
+          <div className="pt-3 border-t-2 border-slate-900 grid grid-cols-3 gap-4 font-mono text-[10px] text-slate-600">
             <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Causal Inference Lead</div>
-              <div className="mt-1 font-bold text-slate-900 font-sans">Dr. Data Science &bull; Ph.D.</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Signature Verified &bull; OptiSim Automated</div>
+              <div className="text-[8px] text-slate-400 uppercase font-semibold">Causal Inference Lead</div>
+              <div className="font-bold text-slate-900 font-sans text-xs">Dr. Data Science, Ph.D.</div>
+              <div className="text-[9px] text-slate-500">Signature Verified &bull; OptiSim</div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">Head of Operations Research</div>
-              <div className="mt-1 font-bold text-slate-900 font-sans">Optimization &bull; HiGHS 1.8</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">MILP Solution: OPTIMAL (12ms)</div>
+              <div className="text-[8px] text-slate-400 uppercase font-semibold">Operations Research Lead</div>
+              <div className="font-bold text-slate-900 font-sans text-xs">Head of Optimization</div>
+              <div className="text-[9px] text-slate-500">HiGHS 1.8: OPTIMAL (12ms)</div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-400 uppercase font-semibold">VP of Engineering &amp; SRE</div>
-              <div className="mt-1 font-bold text-slate-900 font-sans">Platform Governance</div>
-              <div className="text-[11px] text-slate-500 mt-0.5">Approved: 100% Production Rollout</div>
+              <div className="text-[8px] text-slate-400 uppercase font-semibold">VP of Engineering &amp; SRE</div>
+              <div className="font-bold text-slate-900 font-sans text-xs">Platform Governance</div>
+              <div className="text-[9px] text-slate-500">Approved for 100% Rollout</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* VIEW 2: Embedded Live PDF Preview (แปะ PDF เวกเตอร์จริง) */}
+      {/* VIEW 2: Embedded Live 1-Page PDF Preview */}
       {viewMode === "pdf_embed" && (
         <div className="rounded-2xl bg-white/[0.03] p-5 space-y-4">
           <div className="flex justify-between items-center text-xs font-mono text-zinc-400">
-            <span>Embedded Vector PDF Viewer</span>
-            <span>A4 Document Canvas</span>
+            <span>Single-Page A4 Executive PDF Viewer</span>
+            <span>1-Page Board Canvas</span>
           </div>
           {pdfEmbedUrl ? (
             <iframe
@@ -487,7 +445,7 @@ Subject to operational SLA constraints:
           ) : (
             <div className="h-96 flex flex-col items-center justify-center text-zinc-400 space-y-3 font-mono text-xs">
               <div className="h-6 w-6 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              <span>Rendering high-resolution vector PDF canvas...</span>
+              <span>Rendering exact 1-page vector PDF canvas...</span>
             </div>
           )}
         </div>
@@ -502,7 +460,7 @@ Subject to operational SLA constraints:
                 Compile-Ready LaTeX Document (.tex)
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Standard Article class with amsmath &amp; booktabs &bull; Ready to compile with pdflatex or import into Overleaf.
+                Standard 1-Page Article class with amsmath &amp; booktabs &bull; Ready for pdflatex or Overleaf.
               </p>
             </div>
             <button

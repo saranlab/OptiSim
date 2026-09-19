@@ -59,3 +59,26 @@ body {
     size: A4 portrait;
   }
 }
+
+/* KaTeX Mathematical Typography Enhancements */
+.katex {
+  font-size: 1.05em;
+  text-rendering: optimizeLegibility;
+}
+
+.katex-display {
+  margin: 0.5em 0 !important;
+}
+
+/* Ensure math formulas in dark mode containers render in crisp white */
+.dark-math .katex,
+.font-mono .katex,
+div[class*="bg-white/[0.0"] .katex {
+  color: #ffffff;
+}
+
+/* In white paper document sheet, ensure math renders in deep sharp black */
+#memo-rendered-paper .katex {
+  color: #0f172a !important;
+}
+

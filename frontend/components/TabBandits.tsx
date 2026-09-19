@@ -58,6 +58,18 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
             </span>
           </div>
 
+          {/* Thompson Sampling Posterior Box */}
+          <div className="rounded-xl bg-white/[0.02] p-3 text-center border border-white/[0.04]">
+            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider block mb-1">
+              Posterior Conjugate Update: Beta-Binomial
+            </span>
+            <LatexMath
+              block
+              math="\theta_a \sim \text{Beta}\left(\alpha_a + y_t, \; \beta_a + 1 - y_t\right)"
+              className="text-white text-xs sm:text-sm font-medium"
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div className="space-y-1.5 rounded-xl bg-white/[0.02] p-3">
               <div className="flex justify-between text-zinc-400">
@@ -159,19 +171,25 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
           </div>
 
           {/* Context Vector Specification Box (MLE Transparency) */}
-          <div className="rounded-xl bg-white/[0.02] p-3 text-[11px] font-mono text-zinc-400 space-y-1.5">
-            <div className="text-white font-semibold flex items-center gap-2">
-              <span>Context Vector:</span>
-              <LatexMath math="x_t \in \mathbb{R}^3" />
+          <div className="rounded-xl bg-white/[0.02] p-4 text-xs font-mono space-y-2.5 border border-white/[0.04]">
+            <div className="flex items-center justify-between">
+              <span className="text-zinc-400">Context Representation:</span>
+              <LatexMath math="x_t \in \mathbb{R}^3" className="text-white text-sm font-semibold" />
             </div>
-            <div className="grid grid-cols-3 gap-2 pt-0.5 text-[10px]">
-              <div><strong className="text-zinc-300">x_1:</strong> Device (Desktop)</div>
-              <div><strong className="text-zinc-300">x_2:</strong> Tier (Enterprise)</div>
-              <div><strong className="text-zinc-300">x_3:</strong> Recency (Returning)</div>
+            <div className="grid grid-cols-3 gap-2 text-[11px] text-zinc-400 py-1.5 bg-white/[0.02] px-3 rounded-lg">
+              <div><strong className="text-white">x₁:</strong> Device (Desktop)</div>
+              <div><strong className="text-white">x₂:</strong> Tier (Enterprise)</div>
+              <div><strong className="text-white">x₃:</strong> Recency (Returning)</div>
             </div>
-            <div className="pt-1 text-[10px] text-zinc-500 border-t border-white/[0.04] flex items-center gap-1">
-              <span>UCB:</span>
-              <LatexMath math="a_t = \arg\max_a \left( x_t^T \hat{\theta}_a + \alpha \sqrt{x_t^T A_a^{-1} x_t} \right)" />
+            <div className="pt-2 border-t border-white/[0.04] text-center">
+              <span className="text-[10px] text-zinc-500 uppercase tracking-wider block mb-1">
+                Upper Confidence Bound (LinUCB Decision Rule)
+              </span>
+              <LatexMath
+                block
+                math="a_t = \arg\max_{a} \left( x_t^T \hat{\theta}_a + \alpha \sqrt{x_t^T A_a^{-1} x_t} \right)"
+                className="text-white text-xs sm:text-sm font-medium"
+              />
             </div>
           </div>
 

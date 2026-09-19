@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Sliders, Check, Cpu } from "lucide-react";
 import { CandidateFeature, PortfolioOptimizeResponse } from "../lib/types";
+import { LatexMath } from "./LatexMath";
 
 interface TabORKnapsackProps {
   portfolioData: PortfolioOptimizeResponse;
@@ -447,25 +448,50 @@ export const TabORKnapsack: React.FC<TabORKnapsackProps> = ({
         </div>
       </div>
 
-      {/* Clean Operations Research Formulation block */}
-      <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-3">
-        <h3 className="text-sm font-medium text-white">
-          Mathematical Formulation: Multi-Dimensional 0-1 Knapsack MILP
-        </h3>
-        <p className="text-xs text-zinc-400 leading-relaxed">
-          Let <span className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-white">x_i ∈ &#123;0, 1&#125;</span> denote the binary deployment indicator for candidate feature <span className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-white">i ∈ &#123;1, ..., n&#125;</span>.
+      {/* Mathematical Operations Research Formulation */}
+      <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+          <div>
+            <h3 className="text-sm font-medium text-white">
+              Mathematical Formulation: Multi-Dimensional 0-1 Knapsack MILP
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Exact binary integer program solved by HiGHS 1.8 branch-and-cut solver.
+            </p>
+          </div>
+          <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[10px] font-mono text-zinc-300 w-fit">
+            HiGHS 1.8 MILP
+          </span>
+        </div>
+
+        <p className="text-xs text-zinc-300 flex items-center gap-2">
+          <span>Decision Variable:</span>
+          <LatexMath math="x_i \in \{0, 1\}" />
+          <span className="text-zinc-400">denotes deployment indicator for candidate feature</span>
+          <LatexMath math="i \in \{1, \dots, n\}" />
         </p>
 
-        <div className="rounded-xl bg-white/[0.02] p-4 font-mono text-xs text-zinc-300 space-y-2">
-          <div className="font-semibold text-white">
-            maximize: &Sigma; [ v_i(floor) - w_churn &times; ChurnRisk_i ] &times; x_i
+        <div className="rounded-xl bg-white/[0.02] p-5 space-y-4 border border-white/[0.04]">
+          <div className="text-center">
+            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider block mb-1">
+              Objective: Maximize Net Defensible Value
+            </span>
+            <LatexMath
+              block
+              math="\max_{\mathbf{x} \in \{0, 1\}^n} \; \sum_{i=1}^n \left( v_i^{\text{floor}} - w_{\text{churn}} C_i^{\text{churn}} \right) x_i"
+              className="text-white text-sm sm:text-base font-medium"
+            />
           </div>
-          <div className="text-zinc-400 pl-4 space-y-1">
-            <div>subject to:</div>
-            <div>&bull; &Sigma; (Cost_i &times; x_i) &le; Budget_SLA</div>
-            <div>&bull; &Sigma; (Latency_i &times; x_i) &le; Latency_SLA</div>
-            <div>&bull; &Sigma; (Effort_i &times; x_i) &le; Sprint_Capacity</div>
-            <div>&bull; &Sigma; (x_j) &le; 1 for j in ConflictGroup_k</div>
+
+          <div className="pt-3 border-t border-white/[0.04] text-center">
+            <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider block mb-2">
+              Multi-Dimensional SLA Constraints
+            </span>
+            <LatexMath
+              block
+              math="\sum_{i=1}^n c_i x_i \le \mathcal{B}_{\text{max}} \quad (\text{Budget}), \quad \sum_{i=1}^n \ell_i x_i \le \mathcal{L}_{\text{max}} \quad (\text{Latency}), \quad \sum_{i=1}^n e_i x_i \le \mathcal{E}_{\text{max}} \quad (\text{Sprint Effort})"
+              className="text-zinc-200 text-xs sm:text-sm"
+            />
           </div>
         </div>
       </div>
