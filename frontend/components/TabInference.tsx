@@ -13,6 +13,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import { CUPEDResponse, DeltaMethodResponse, SequentialResponse } from "../lib/types";
+import { LatexMath } from "./LatexMath";
 
 interface TabInferenceProps {
   sequentialData: SequentialResponse;
@@ -183,17 +184,22 @@ export const TabInference: React.FC<TabInferenceProps> = ({
                 -{cupedData.variance_reduction_pct.toFixed(1)}% Variance
               </span>
             </div>
-            <p className="text-xs text-zinc-400 mt-1">
-              Pre-experiment covariate adjustment: Y_cuped = Y - &theta;(X - E[X])
-            </p>
+            <div className="text-xs text-zinc-300 mt-1 flex items-center gap-2">
+              <span className="text-zinc-400">Model:</span>
+              <LatexMath math="Y_{\text{CUPED}} = Y - \theta^*(X - \mathbb{E}[X])" />
+            </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-mono">
               <div className="rounded-xl bg-white/[0.02] p-3">
-                <span className="text-[10px] text-zinc-500 block mb-1">Covariance Multiplier (&theta;)</span>
+                <span className="text-[10px] text-zinc-500 block mb-1">
+                  Covariance Multiplier (<LatexMath math="\theta" />)
+                </span>
                 <span className="text-sm font-semibold text-white tabular-nums">{cupedData.theta.toFixed(4)}</span>
               </div>
               <div className="rounded-xl bg-white/[0.02] p-3">
-                <span className="text-[10px] text-zinc-500 block mb-1">Covariate Correlation (&rho;)</span>
+                <span className="text-[10px] text-zinc-500 block mb-1">
+                  Covariate Correlation (<LatexMath math="\rho" />)
+                </span>
                 <span className="text-sm font-semibold text-white tabular-nums">{cupedData.correlation.toFixed(3)}</span>
               </div>
             </div>
@@ -216,9 +222,10 @@ export const TabInference: React.FC<TabInferenceProps> = ({
                 Cluster-Robust
               </span>
             </div>
-            <p className="text-xs text-zinc-400 mt-1">
-              First-order Taylor expansion correcting for intra-user session correlation.
-            </p>
+            <div className="text-xs text-zinc-300 mt-1 flex items-center gap-2">
+              <span className="text-zinc-400">First-order Taylor expansion:</span>
+              <LatexMath math="Z = \frac{\bar{Y}/\bar{X} - r_0}{\widehat{\text{SE}}}" />
+            </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3 text-xs font-mono">
               <div className="rounded-xl bg-white/[0.02] p-3">

@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import { Play, Sparkles, BrainCircuit } from "lucide-react";
 import { LinUCBResponse, ThompsonResponse } from "../lib/types";
+import { LatexMath } from "./LatexMath";
 
 interface TabBanditsProps {
   thompsonData: ThompsonResponse;
@@ -158,14 +159,19 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
           </div>
 
           {/* Context Vector Specification Box (MLE Transparency) */}
-          <div className="rounded-xl bg-white/[0.02] p-3 text-[11px] font-mono text-zinc-400 space-y-1">
-            <div className="text-white font-semibold flex items-center gap-1">
-              <span>Context Vector x_t &in; R^3:</span>
+          <div className="rounded-xl bg-white/[0.02] p-3 text-[11px] font-mono text-zinc-400 space-y-1.5">
+            <div className="text-white font-semibold flex items-center gap-2">
+              <span>Context Vector:</span>
+              <LatexMath math="x_t \in \mathbb{R}^3" />
             </div>
-            <div className="grid grid-cols-3 gap-2 pt-1 text-[10px]">
+            <div className="grid grid-cols-3 gap-2 pt-0.5 text-[10px]">
               <div><strong className="text-zinc-300">x_1:</strong> Device (Desktop)</div>
               <div><strong className="text-zinc-300">x_2:</strong> Tier (Enterprise)</div>
               <div><strong className="text-zinc-300">x_3:</strong> Recency (Returning)</div>
+            </div>
+            <div className="pt-1 text-[10px] text-zinc-500 border-t border-white/[0.04] flex items-center gap-1">
+              <span>UCB:</span>
+              <LatexMath math="a_t = \arg\max_a \left( x_t^T \hat{\theta}_a + \alpha \sqrt{x_t^T A_a^{-1} x_t} \right)" />
             </div>
           </div>
 
