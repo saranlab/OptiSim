@@ -1345,17 +1345,82 @@ with tab4:
             unsafe_allow_html=True,
         )
 
-        m_tab1, m_tab2, m_tab3, m_tab4, m_tab5, m_tab6, m_tab7 = st.tabs([
-            "🛡️ Sequential CS",
-            "⚡ CUPED",
-            "📐 Delta Method",
-            "🧠 Bayesian Loss",
-            "🤖 LinUCB Bandits",
-            "📊 Frequentist & Power",
-            "💰 Financial ROI",
+        MATH_TOPICS = [
+            "1. 🛡️ Sequential CS",
+            "2. ⚡ CUPED Variance",
+            "3. 📐 Clustered Delta",
+            "4. 🧠 Bayesian Loss",
+            "5. 🤖 LinUCB Bandits",
+            "6. 📊 Frequentist & Power",
+            "7. 💰 Financial ROI",
+        ]
+
+        if "math_topic" not in st.session_state or st.session_state["math_topic"] not in MATH_TOPICS:
+            st.session_state["math_topic"] = MATH_TOPICS[0]
+
+        def go_prev_topic():
+            cur = MATH_TOPICS.index(st.session_state["math_topic"])
+            st.session_state["math_topic"] = MATH_TOPICS[(cur - 1) % len(MATH_TOPICS)]
+
+        def go_next_topic():
+            cur = MATH_TOPICS.index(st.session_state["math_topic"])
+            st.session_state["math_topic"] = MATH_TOPICS[(cur + 1) % len(MATH_TOPICS)]
+
+        st.markdown(
+            """
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">🏛️ Complete Mathematical Compendium</span>
+                    <span style="background: #2563EB; color: #FFFFFF; font-size: 0.76rem; font-weight: 700; padding: 2px 10px; border-radius: 9999px;">
+                        7 Core Modules (1 to 7)
+                    </span>
+                </div>
+                <div style="font-size: 0.82rem; color: #64748B;">
+                    Click any pill below or use ⬅️ / ➡️ to explore all 7 mathematical engines
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.pills(
+            "Mathematical Engine",
+            options=MATH_TOPICS,
+            key="math_topic",
+            label_visibility="collapsed",
+        )
+
+        curr_idx = MATH_TOPICS.index(st.session_state["math_topic"])
+
+        # Visual progress dots and stepper bar
+        dots_html = "".join([
+            f'<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background-color:{"#2563EB" if i == curr_idx else "#CBD5E1"}; margin: 0 4px; transition: background-color 0.2s;"></span>'
+            for i in range(len(MATH_TOPICS))
         ])
 
-        with m_tab1:
+        col_nav_l, col_nav_c, col_nav_r = st.columns([1, 2, 1])
+        with col_nav_l:
+            prev_num = (curr_idx - 1) % len(MATH_TOPICS) + 1
+            st.button(f"⬅️ Prev ({prev_num}/7)", on_click=go_prev_topic, key="btn_prev_math", width="stretch")
+        with col_nav_c:
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 2px 0;">
+                    <div style="margin-bottom: 3px;">{dots_html}</div>
+                    <div style="font-size: 0.82rem; font-weight: 600; color: #475569;">
+                        Module <strong>{curr_idx + 1} of 7</strong>: <span style="color: #0F172A; font-weight: 700;">{MATH_TOPICS[curr_idx].split(' ', 1)[1]}</span>
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with col_nav_r:
+            next_num = (curr_idx + 1) % len(MATH_TOPICS) + 1
+            st.button(f"Next ({next_num}/7) ➡️", on_click=go_next_topic, key="btn_next_math", width="stretch")
+
+        st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+        if curr_idx == 0:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
@@ -1398,7 +1463,7 @@ with tab4:
                 unsafe_allow_html=True,
             )
 
-        with m_tab2:
+        elif curr_idx == 1:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
@@ -1442,7 +1507,7 @@ with tab4:
                 unsafe_allow_html=True,
             )
 
-        with m_tab3:
+        elif curr_idx == 2:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
@@ -1491,7 +1556,7 @@ with tab4:
                 unsafe_allow_html=True,
             )
 
-        with m_tab4:
+        elif curr_idx == 3:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
@@ -1537,7 +1602,7 @@ with tab4:
                 unsafe_allow_html=True,
             )
 
-        with m_tab5:
+        elif curr_idx == 4:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
@@ -1587,7 +1652,7 @@ with tab4:
                 unsafe_allow_html=True,
             )
 
-        with m_tab6:
+        elif curr_idx == 5:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
@@ -1631,7 +1696,7 @@ with tab4:
                 unsafe_allow_html=True,
             )
 
-        with m_tab7:
+        elif curr_idx == 6:
             st.markdown(
                 r"""
                 <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
