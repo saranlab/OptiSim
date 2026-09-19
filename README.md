@@ -86,9 +86,11 @@ OptiSim/
 │       └── ci.yml              # Automated continuous integration test suite
 ├── ab_testing_platform/        # Pure, decoupled mathematical & statistical core
 │   ├── sequential.py           # Anytime-valid confidence sequence engine (Waudby-Smith & Ramdas)
+│   ├── cuped.py                # CUPED variance reduction engine (Deng et al. 2013)
+│   ├── delta_method.py         # Cluster-robust ratio metric inference (Deng et al. 2018)
 │   ├── bayesian.py             # Beta-Binomial conjugate posterior & Expected Loss
 │   ├── frequentist.py          # A priori sample size planning & Wald inference
-│   ├── bandits.py              # Thompson Sampling multi-armed bandit simulation
+│   ├── bandits.py              # Thompson Sampling & LinUCB contextual bandit simulation
 │   ├── simulation.py           # Monte Carlo sample path simulator
 │   ├── models.py               # Typed dataclasses and results
 │   └── math_utils.py           # Numerical stability and distribution helpers
@@ -96,7 +98,7 @@ OptiSim/
 │   └── services.py             # ExperimentDashboardService orchestrator
 ├── examples/
 │   └── usage_example.py        # Standalone Python CLI usage example
-└── tests/                      # Automated unittest suite (30 unit tests)
+└── tests/                      # Automated unittest suite (42 unit tests)
 ```
 
 ---

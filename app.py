@@ -394,23 +394,80 @@ with st.sidebar:
     traffic = st.number_input("Projected Annual Traffic", 1_000, 100_000_000, 100_000, 10_000)
 
 # -----------------------------------------------------------------------------
-# 5. Execute Experiment Analysis Service
+# 5. Execute Experiment Analysis Service (Cached for Low Latency)
 # -----------------------------------------------------------------------------
-analysis = ExperimentDashboardService.run(
-    baseline_conversion_rate=baseline_cvr,
-    expected_lift=expected_lift,
-    alpha=alpha,
-    beta=beta,
-    posterior_samples=posterior_samples,
-    bandit_rounds=bandit_rounds,
-    real_sample_size_a=real_sample_size_a,
-    real_conversions_a=real_conversions_a,
-    real_sample_size_b=real_sample_size_b,
-    real_conversions_b=real_conversions_b,
-    mode="simulation" if is_simulation else "real",
-    revenue_per_conversion=rev_per_conv,
-    implementation_cost=impl_cost,
-    projected_traffic=traffic,
+@st.cache_data(show_spinner="Computing causal inference metrics...", ttl=300)
+def get_cached_analysis(
+    b_cvr, exp_lift, a_val, b_val, post_samples, b_rounds,
+    rss_a, rconv_a, rss_b, rconv_b,
+    exp_mode, r_per_c, i_cost, proj_traffic
+):
+    return ExperimentDashboardService.run(
+        baseline_conversion_rate=b_cvr,
+        expected_lift=exp_lift,
+        alpha=a_val,
+        beta=b_val,
+        posterior_samples=post_samples,
+        bandit_rounds=b_rounds,
+        real_sample_size_a=rss_a,
+        real_conversions_a=rconv_a,
+        real_sample_size_b=rss_b,
+        real_conversions_b=rconv_b,
+        mode=exp_mode,
+        revenue_per_conversion=r_per_c,
+        implementation_cost=i_cost,
+        projected_traffic=proj_traffic,
+    )
+
+
+@st.cache_data(show_spinner="Computing CUPED adjustment...", ttl=300)
+def get_cached_cuped(n_c, n_t, base_cvr, lift, corr, alpha_val):
+    return ExperimentDashboardService.run_cuped_analysis(
+        n_control=n_c,
+        n_treatment=n_t,
+        baseline_cvr=base_cvr,
+        true_lift=lift,
+        correlation=corr,
+        alpha=alpha_val,
+    )
+
+
+@st.cache_data(show_spinner="Computing Delta Method ratio test...", ttl=300)
+def get_cached_delta_method(n_users_c, n_users_t, base_ctr, lift, mean_sessions, alpha_val):
+    return ExperimentDashboardService.run_delta_method_analysis(
+        num_users_control=n_users_c,
+        num_users_treatment=n_users_t,
+        base_ctr=base_ctr,
+        true_lift=lift,
+        mean_sessions=mean_sessions,
+        alpha=alpha_val,
+    )
+
+
+@st.cache_data(show_spinner="Simulating LinUCB Contextual Bandit...", ttl=300)
+def get_cached_contextual_bandit(rounds, context_dim, alpha_val):
+    return ExperimentDashboardService.run_contextual_bandit_simulation(
+        n_rounds=rounds,
+        context_dim=context_dim,
+        alpha=alpha_val,
+    )
+
+
+analysis = get_cached_analysis(
+    baseline_cvr,
+    expected_lift,
+    alpha,
+    beta,
+    posterior_samples,
+    bandit_rounds,
+    real_sample_size_a,
+    real_conversions_a,
+    real_sample_size_b,
+    real_conversions_b,
+    "simulation" if is_simulation else "real",
+    rev_per_conv,
+    impl_cost,
+    traffic,
 )
 
 exp = analysis.experiment
@@ -465,8 +522,8 @@ st.markdown(
 tab1, tab2, tab3, tab4 = st.tabs([
     "📊 Diagnostic & Inference",
     "💰 Financial & Winner's Curse",
-    "🧪 Bandits & Simulation",
-    "📐 Statistical Rigor",
+    "🧪 Bandits & Personalization",
+    "📐 Advanced Methodology & Rigor",
 ])
 
 # -----------------------------------------------------------------------------
@@ -730,109 +787,361 @@ with tab2:
         st.plotly_chart(format_chart(fig_fin, height=330), use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 3: Simulation & Bandit Lab
+# -----------------------------------------------------------------------------
+# TAB 3: Bandits & Personalization Lab
 # -----------------------------------------------------------------------------
 with tab3:
-    if is_simulation and analysis.bandit is not None:
-        col_b1, col_b2, col_b3 = st.columns(3)
-        with col_b1:
-            st.metric("Total Bandit Rounds", f"{bandit_rounds:,}")
-        with col_b2:
-            st.metric("Conversions Earned", f"{analysis.bandit['cumulative_reward']:,}")
-        with col_b3:
+    algo_mode = st.radio(
+        "Optimization Framework",
+        options=["Bernoulli Thompson Sampling (MAB)", "LinUCB Contextual Bandit (Personalized)"],
+        horizontal=True,
+        help="Compare classical multi-armed exploration vs user-context-aware ridge regression personalization.",
+    )
+
+    if algo_mode == "Bernoulli Thompson Sampling (MAB)":
+        if is_simulation and analysis.bandit is not None:
+            col_b1, col_b2, col_b3 = st.columns(3)
+            with col_b1:
+                st.metric("Total Bandit Rounds", f"{bandit_rounds:,}")
+            with col_b2:
+                st.metric("Conversions Earned", f"{analysis.bandit['cumulative_reward']:,}")
+            with col_b3:
+                st.metric(
+                    "Cumulative Regret",
+                    f"{analysis.bandit['regret']:.1f} missed",
+                    help="The opportunity cost of serving sub-optimal variants during dynamic exploration.",
+                )
+
+            st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+            col_s1, col_s2 = st.columns(2)
+            chart_data = analysis.chart_data
+            with col_s1:
+                with st.container(border=True):
+                    st.markdown(
+                        """
+                        <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Monte Carlo Convergence Path</div>
+                        <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Empirical conversion rates fluctuating and stabilizing toward truth as sample size grows.</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
+                            <span><span style="color: #64748B; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Group A Convergence</span>
+                            <span><span style="color: #2563EB; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Group B Convergence</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if chart_data and chart_data.get("convergence"):
+                        conv_data = chart_data["convergence"]
+                        s_sizes = [pt["sample_size"] for pt in conv_data]
+                        cvr_as = [pt["cvr_a"] * 100 for pt in conv_data]
+                        cvr_bs = [pt["cvr_b"] * 100 for pt in conv_data]
+
+                        fig_conv = go.Figure()
+                        fig_conv.add_trace(go.Scatter(x=s_sizes, y=cvr_as, mode="lines", name="Group A Convergence", line=dict(color="#64748B", width=2), showlegend=False))
+                        fig_conv.add_trace(go.Scatter(x=s_sizes, y=cvr_bs, mode="lines", name="Group B Convergence", line=dict(color="#2563EB", width=2.5), showlegend=False))
+                        fig_conv.update_layout(
+                            xaxis=dict(title=dict(text="Evaluated Sample Size", standoff=12), automargin=True),
+                            yaxis=dict(title=dict(text="Empirical CVR (%)", standoff=12), automargin=True),
+                        )
+                        st.plotly_chart(format_chart(fig_conv, height=270), use_container_width=True)
+
+            with col_s2:
+                with st.container(border=True):
+                    st.markdown(
+                        """
+                        <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Thompson Sampling Cumulative Regret</div>
+                        <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Sub-linear regret growth as Thompson Sampling dynamically routes traffic to the winning arm.</div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
+                            <span><span style="color: #D97706; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Thompson Sampling Cumulative Regret</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if chart_data and chart_data.get("bandit"):
+                        b_data = chart_data["bandit"]
+                        rounds = [pt["round"] for pt in b_data]
+                        regrets = [pt["regret"] for pt in b_data]
+
+                        fig_regret = go.Figure()
+                        fig_regret.add_trace(go.Scatter(
+                            x=rounds, y=regrets,
+                            mode="lines", name="Thompson Sampling Regret",
+                            line=dict(color="#D97706", width=2.5),
+                            fill="tozeroy", fillcolor="rgba(217, 119, 6, 0.08)",
+                            showlegend=False,
+                        ))
+                        fig_regret.update_layout(
+                            xaxis=dict(title=dict(text="Customer Arrival Round", standoff=12), automargin=True),
+                            yaxis=dict(title=dict(text="Cumulative Regret (Missed Conversions)", standoff=12), automargin=True),
+                        )
+                        st.plotly_chart(format_chart(fig_regret, height=270), use_container_width=True)
+        else:
+            st.info("Switch to **Plan & Simulate Mode** in the sidebar to simulate live Monte Carlo convergence paths and multi-armed bandit regret curves.")
+
+    else:
+        # LinUCB Contextual Bandit Mode
+        ctx_res = get_cached_contextual_bandit(rounds=max(1000, bandit_rounds), context_dim=3, alpha_val=1.0)
+        col_c1, col_c2, col_c3, col_c4 = st.columns(4)
+        with col_c1:
+            st.metric("Contextual Rounds", f"{ctx_res.rounds:,}")
+        with col_c2:
+            st.metric("Active Personalization Arms", f"{ctx_res.num_arms} Variants")
+        with col_c3:
+            st.metric("Conversions Earned", f"{int(ctx_res.cumulative_reward):,}")
+        with col_c4:
             st.metric(
                 "Cumulative Regret",
-                f"{analysis.bandit['regret']:.1f} missed",
-                help="The opportunity cost of serving sub-optimal variants during dynamic exploration.",
+                f"{ctx_res.cumulative_regret:.1f} missed",
+                help="Regret minimized by conditioning arm selection on user context (mobile, intent, tier).",
             )
 
         st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
 
-        col_s1, col_s2 = st.columns(2)
-        chart_data = analysis.chart_data
-        with col_s1:
+        col_c_g1, col_c_g2 = st.columns(2)
+        with col_c_g1:
             with st.container(border=True):
                 st.markdown(
                     """
-                    <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Monte Carlo Convergence Path</div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Empirical conversion rates fluctuating and stabilizing toward truth as sample size grows.</div>
+                    <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">LinUCB Dynamic Regret Curve</div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Sub-linear regret as ridge regression learns personalized context weights.</div>
                     <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
-                        <span><span style="color: #64748B; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Group A Convergence</span>
-                        <span><span style="color: #2563EB; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Group B Convergence</span>
+                        <span><span style="color: #7C3AED; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Contextual LinUCB Regret</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                if chart_data and chart_data.get("convergence"):
-                    conv_data = chart_data["convergence"]
-                    s_sizes = [pt["sample_size"] for pt in conv_data]
-                    cvr_as = [pt["cvr_a"] * 100 for pt in conv_data]
-                    cvr_bs = [pt["cvr_b"] * 100 for pt in conv_data]
+                fig_ctx_reg = go.Figure()
+                fig_ctx_reg.add_trace(go.Scatter(
+                    x=ctx_res.history_rounds,
+                    y=ctx_res.history_regrets,
+                    mode="lines",
+                    name="LinUCB Regret",
+                    line=dict(color="#7C3AED", width=2.5),
+                    fill="tozeroy",
+                    fillcolor="rgba(124, 58, 237, 0.08)",
+                    showlegend=False,
+                ))
+                fig_ctx_reg.update_layout(
+                    xaxis=dict(title=dict(text="Arrival Round", standoff=12), automargin=True),
+                    yaxis=dict(title=dict(text="Cumulative Regret", standoff=12), automargin=True),
+                )
+                st.plotly_chart(format_chart(fig_ctx_reg, height=270), use_container_width=True)
 
-                    fig_conv = go.Figure()
-                    fig_conv.add_trace(go.Scatter(x=s_sizes, y=cvr_as, mode="lines", name="Group A Convergence", line=dict(color="#64748B", width=2), showlegend=False))
-                    fig_conv.add_trace(go.Scatter(x=s_sizes, y=cvr_bs, mode="lines", name="Group B Convergence", line=dict(color="#2563EB", width=2.5), showlegend=False))
-                    fig_conv.update_layout(
-                        xaxis=dict(title=dict(text="Evaluated Sample Size", standoff=12), automargin=True),
-                        yaxis=dict(title=dict(text="Empirical CVR (%)", standoff=12), automargin=True),
-                    )
-                    st.plotly_chart(format_chart(fig_conv, height=270), use_container_width=True)
-
-        with col_s2:
+        with col_c_g2:
             with st.container(border=True):
                 st.markdown(
                     """
-                    <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Thompson Sampling Cumulative Regret</div>
-                    <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Sub-linear regret growth as Thompson Sampling dynamically routes traffic to the winning arm.</div>
+                    <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Personalized Arm Allocation</div>
+                    <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Traffic distribution routed by contextual user segment affinity.</div>
                     <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
-                        <span><span style="color: #D97706; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Thompson Sampling Cumulative Regret</span>
+                        <span><span style="display:inline-block; width:12px; height:12px; background:#6366F1; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> User Pulls</span>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                if chart_data and chart_data.get("bandit"):
-                    b_data = chart_data["bandit"]
-                    rounds = [pt["round"] for pt in b_data]
-                    regrets = [pt["regret"] for pt in b_data]
+                fig_ctx_pulls = go.Figure()
+                arms_list = list(ctx_res.arm_pull_counts.keys())
+                pulls_list = [ctx_res.arm_pull_counts[a] for a in arms_list]
+                display_arms = [a.replace("_", " ").title() for a in arms_list]
 
-                    fig_regret = go.Figure()
-                    fig_regret.add_trace(go.Scatter(
-                        x=rounds, y=regrets,
-                        mode="lines", name="Thompson Sampling Regret",
-                        line=dict(color="#D97706", width=2.5),
-                        fill="tozeroy", fillcolor="rgba(217, 119, 6, 0.08)",
-                        showlegend=False,
-                    ))
-                    fig_regret.update_layout(
-                        xaxis=dict(title=dict(text="Customer Arrival Round", standoff=12), automargin=True),
-                        yaxis=dict(title=dict(text="Cumulative Regret (Missed Conversions)", standoff=12), automargin=True),
-                    )
-                    st.plotly_chart(format_chart(fig_regret, height=270), use_container_width=True)
-    else:
-        st.info("Switch to **Plan & Simulate Mode** in the sidebar to simulate live Monte Carlo convergence paths and multi-armed bandit regret curves.")
+                fig_ctx_pulls.add_trace(go.Bar(
+                    x=display_arms,
+                    y=pulls_list,
+                    marker_color=["#6366F1", "#3B82F6", "#06B6D4"],
+                    showlegend=False,
+                ))
+                fig_ctx_pulls.update_layout(
+                    xaxis=dict(tickfont=dict(size=12, color="#0F172A", weight=600), automargin=True),
+                    yaxis=dict(title=dict(text="Total User Allocations", standoff=12), automargin=True),
+                )
+                st.plotly_chart(format_chart(fig_ctx_pulls, height=270), use_container_width=True)
 
 # -----------------------------------------------------------------------------
-# TAB 4: Statistical Rigor & Methodology Reference
+# TAB 4: Advanced Methodology & Rigor
 # -----------------------------------------------------------------------------
 with tab4:
+    # 1. Interactive CUPED Variance Reduction Studio
     with st.container(border=True):
         st.markdown(
-            """<div style="font-size: 1.02rem; font-weight: 700; color: #0F172A; margin-bottom: 12px;">Mathematical Formulations & Time-Uniform Guarantees</div>""",
+            """
+            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">⚡ CUPED Studio: Variance Reduction via Pre-Experiment Covariates</div>
+            <div style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">
+                CUPED (Deng et al., 2013) utilizes historical pre-experiment data (e.g. past user spend or baseline activity) 
+                to strip away pre-existing variation: <strong>Y<sub>adj</sub> = Y - θ(X - E[X])</strong>. 
+                Variance is reduced by <strong>(1 - ρ²)</strong>, reducing required traffic by 30% to 50% without altering the unbiased treatment effect.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        col_cuped_ctrl1, col_cuped_ctrl2 = st.columns([2, 1])
+        with col_cuped_ctrl1:
+            cuped_rho = st.slider(
+                "Pre-Experiment Correlation (ρ)",
+                min_value=0.00,
+                max_value=0.90,
+                value=0.60,
+                step=0.05,
+                help="Correlation between pre-experiment user metric (X) and experiment outcome (Y). Typically 0.50 - 0.70 in e-commerce.",
+            )
+        with col_cuped_ctrl2:
+            st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
+            st.caption(f"Theoretical Sample Size Savings: **{cuped_rho**2 * 100:.1f}%**")
+
+        cuped_result, _ = get_cached_cuped(
+            n_c=5000,
+            n_t=5000,
+            base_cvr=exp["conversion_rate_a"],
+            lift=freq["absolute_lift"],
+            corr=cuped_rho,
+            alpha_val=alpha,
+        )
+
+        col_cp1, col_cp2, col_cp3, col_cp4 = st.columns(4)
+        with col_cp1:
+            st.metric("Empirical Corr (ρ)", f"{cuped_result.correlation:.2f}")
+        with col_cp2:
+            st.metric("Variance Reduction", f"{cuped_result.variance_reduction_pct:.1f}%", delta="Noise Removed", delta_color="normal")
+        with col_cp3:
+            st.metric("Sample Size Savings", f"{cuped_result.sample_size_savings_pct:.1f}%", delta="Faster Experiments", delta_color="normal")
+        with col_cp4:
+            st.metric("Adjusted P-Value", f"{cuped_result.p_value:.4f}", delta="CUPED Inference", delta_color="normal" if cuped_result.is_significant else "off")
+
+        # Visualizing Raw vs CUPED Interval
+        st.markdown("<div style='height: 6px;'></div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 6px;">
+                <span><span style="color: #94A3B8; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Raw Unadjusted Confidence Interval</span>
+                <span><span style="color: #059669; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> CUPED Variance-Reduced Confidence Interval</span>
+                <span><span style="color: #0F172A; font-weight: 900;">◆</span> Point Lift</span>
+                <span><span style="color: #DC2626; font-weight: 900;">┆</span> Null Line (0%)</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        z_crit = stats.norm.ppf(1.0 - alpha / 2.0)
+        raw_se = np.sqrt(cuped_result.raw_variance)
+        raw_ci_low = (cuped_result.raw_lift - z_crit * raw_se) * 100.0
+        raw_ci_high = (cuped_result.raw_lift + z_crit * raw_se) * 100.0
+
+        adj_ci_low = cuped_result.ci_lower * 100.0
+        adj_ci_high = cuped_result.ci_upper * 100.0
+
+        fig_cuped = go.Figure()
+        fig_cuped.add_trace(go.Scatter(
+            x=[raw_ci_low, raw_ci_high],
+            y=["Raw Unadjusted", "Raw Unadjusted"],
+            mode="lines+markers",
+            line=dict(color="#94A3B8", width=5),
+            marker=dict(size=12, symbol="line-ns", line_width=4),
+            showlegend=False,
+        ))
+        fig_cuped.add_trace(go.Scatter(
+            x=[adj_ci_low, adj_ci_high],
+            y=["CUPED Adjusted", "CUPED Adjusted"],
+            mode="lines+markers",
+            line=dict(color="#059669", width=6),
+            marker=dict(size=14, symbol="line-ns", line_width=5),
+            showlegend=False,
+        ))
+        fig_cuped.add_vline(
+            x=0.0,
+            line_dash="dash",
+            line_color="#DC2626",
+            line_width=1.5,
+            annotation_text=" Null (0%) ",
+            annotation_position="bottom right",
+            annotation=dict(bgcolor="#FEF2F2", bordercolor="#FECACA", borderwidth=1, font=dict(color="#B91C1C", size=10, weight=600)),
+        )
+        fig_cuped.add_trace(go.Scatter(
+            x=[cuped_result.raw_lift * 100.0],
+            y=["Raw Unadjusted"],
+            mode="markers",
+            marker=dict(size=11, color="#0F172A", symbol="diamond"),
+            showlegend=False,
+        ))
+        fig_cuped.add_trace(go.Scatter(
+            x=[cuped_result.adjusted_lift * 100.0],
+            y=["CUPED Adjusted"],
+            mode="markers",
+            marker=dict(size=11, color="#0F172A", symbol="diamond"),
+            showlegend=False,
+        ))
+        fig_cuped.update_layout(
+            xaxis=dict(title=dict(text="Treatment Effect Lift (percentage points)", standoff=12), automargin=True),
+            yaxis=dict(range=[-0.5, 1.5], tickfont=dict(color="#0F172A", size=11, weight=600), automargin=True),
+        )
+        st.plotly_chart(format_chart(fig_cuped, height=230), use_container_width=True)
+
+    # 2. Interactive Delta Method Clustered Ratio Studio
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">📐 Clustered Ratio Metrics & The Delta Method</div>
+            <div style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">
+                Online experiments frequently evaluate ratio metrics (e.g. CTR = Total Clicks / Total Sessions). 
+                Because the unit of randomization is the user but metrics occur across multiple sessions per user, observations are clustered. 
+                Treating sessions as independent violates i.i.d. assumptions and severely underestimates standard errors. 
+                The <strong>Delta Method (Deng et al., 2018)</strong> uses a Taylor series expansion to produce honest, cluster-robust standard errors.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        col_delta_ctrl1, col_delta_ctrl2 = st.columns([2, 1])
+        with col_delta_ctrl1:
+            mean_sessions = st.slider(
+                "Mean Sessions per User (Cluster Intensity)",
+                min_value=1.0,
+                max_value=12.0,
+                value=5.0,
+                step=0.5,
+                help="Higher session counts per user introduce stronger clustering variance.",
+            )
+        with col_delta_ctrl2:
+            st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
+            st.caption("Unit of Randomization: User | Metric Unit: Session")
+
+        delta_res, delta_comp = get_cached_delta_method(
+            n_users_c=1000,
+            n_users_t=1000,
+            base_ctr=0.08,
+            lift=0.015,
+            mean_sessions=mean_sessions,
+            alpha_val=alpha,
+        )
+
+        col_d1, col_d2, col_d3 = st.columns(3)
+        with col_d1:
+            st.metric("Naive Pooled SE", f"{delta_comp['naive_se']:.5f}", help="Underestimates variance by assuming sessions are independent.")
+        with col_d2:
+            st.metric("Delta Method Robust SE", f"{delta_comp['robust_se']:.5f}", help="Honest asymptotic standard error with user clustering.")
+        with col_d3:
+            vif = delta_comp['variance_inflation_factor']
+            st.metric("Variance Inflation Factor", f"{vif:.2f}x", delta=f"+{(vif - 1.0)*100:.0f}% SE penalty", delta_color="inverse")
+
+    # 3. Mathematical Reference Formulations
+    with st.container(border=True):
+        st.markdown(
+            """<div style="font-size: 1.02rem; font-weight: 700; color: #0F172A; margin-bottom: 12px;">Mathematical Foundations & Asymptotic Guarantees</div>""",
             unsafe_allow_html=True,
         )
         st.markdown(
             r"""
             #### A. Anytime-Valid Confidence Sequences (Waudby-Smith & Ramdas, 2023)
-            For an empirical difference $\hat{\delta}_n$ with pooled variance $\sigma^2$ at effective sample size $n$:
             $$\hat{\delta}_n \pm \sigma \sqrt{\frac{2(n\rho^2 + 1)}{n^2 \rho^2} \log\left(\frac{\sqrt{n\rho^2 + 1}}{\alpha}\right)}$$
-            where $\rho$ is a pre-experiment tuning parameter anchored to the planned sample size $N^*$:
-            $$\rho = \sqrt{\frac{-2\log(\alpha) + \log(-2\log(\alpha) + 1)}{N^*}}$$
-            *Mathematical Guarantee*: $\mathbb{P}\left(\forall n \ge 1, \; \delta^* \in \text{CS}_n\right) \ge 1 - \alpha$. Continuous peeking never inflates Type I error.
+            *Time-Uniform Guarantee*: $\mathbb{P}\left(\forall n \ge 1, \; \delta^* \in \text{CS}_n\right) \ge 1 - \alpha$. Continuous peeking never inflates Type I error.
 
-            #### B. Bayesian Beta-Binomial Posterior Update & Expected Loss
-            Given flat prior $\text{Beta}(1, 1)$, after observing $k_i$ conversions out of $n_i$ trials:
+            #### B. CUPED Optimal Covariate Adjustment (Deng et al., 2013)
+            $$Y_{\text{adj}} = Y - \theta^*(X - \mathbb{E}[X]), \quad \text{where } \theta^* = \frac{\text{Cov}(Y, X)}{\text{Var}(X)}$$
+            $$\text{Var}(Y_{\text{adj}}) = \text{Var}(Y)(1 - \rho^2), \quad N_{\text{CUPED}} = N(1 - \rho^2)$$
+
+            #### C. Delta Method for Clustered Ratio Metrics (Deng et al., 2018)
+            $$\widehat{\text{Var}}\left(\frac{\bar{Y}}{\bar{N}}\right) = \frac{1}{m \bar{N}^2} \left[ s_Y^2 - 2 \hat{R} s_{YN} + \hat{R}^2 s_N^2 \right]$$
+
+            #### D. Bayesian Posterior Update & Expected Loss
             $$\theta_i \mid \text{data} \sim \text{Beta}(1 + k_i, \; 1 + n_i - k_i)$$
-            The **Expected Loss** of deploying Variant $B$ over Control $A$ is:
             $$\mathbb{E}[\text{Loss} \mid \text{choose } B] = \int_0^1 \int_0^1 \max(0, \theta_A - \theta_B) \, p(\theta_A) p(\theta_B) \, d\theta_A d\theta_B$$
             """
         )

@@ -120,3 +120,61 @@ class BanditSummary:
     cumulative_reward: int
     regret: float
     history: List[BanditRound]
+
+
+@dataclass(frozen=True)
+class CUPEDResult:
+    """Results from Controlled-experiment Using Pre-Experiment Data (CUPED)."""
+
+    raw_mean_control: float
+    raw_mean_treatment: float
+    raw_lift: float
+    raw_variance: float
+    adjusted_mean_control: float
+    adjusted_mean_treatment: float
+    adjusted_lift: float
+    adjusted_variance: float
+    theta: float
+    correlation: float
+    variance_reduction_pct: float
+    sample_size_savings_pct: float
+    ci_lower: float
+    ci_upper: float
+    p_value: float
+    is_significant: bool
+
+
+@dataclass(frozen=True)
+class DeltaMethodResult:
+    """Results of a cluster-robust ratio metric comparison using the Delta Method."""
+
+    ratio_control: float
+    ratio_treatment: float
+    absolute_lift: float
+    relative_lift: float
+    se_control: float
+    se_treatment: float
+    se_difference: float
+    z_statistic: float
+    p_value: float
+    ci_lower: float
+    ci_upper: float
+    is_significant: bool
+    num_clusters_control: int
+    num_clusters_treatment: int
+
+
+@dataclass(frozen=True)
+class ContextualBanditResult:
+    """Summary of a Contextual Bandit (LinUCB) simulation run."""
+
+    rounds: int
+    num_arms: int
+    context_dim: int
+    cumulative_reward: float
+    cumulative_regret: float
+    arm_pull_counts: Dict[str, int]
+    arm_rewards: Dict[str, float]
+    history_rounds: List[int]
+    history_regrets: List[float]
+    history_rewards: List[float]

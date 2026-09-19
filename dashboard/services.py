@@ -9,7 +9,13 @@ import numpy as np
 
 from ab_testing_platform import (
     BayesianEngine,
+    ContextualBanditResult,
+    CUPEDEngine,
+    CUPEDResult,
+    DeltaMethodEngine,
+    DeltaMethodResult,
     ExperimentSimulator,
+    LinUCBBandit,
     SequentialTest,
     StatsEngine,
     ThompsonSamplingBandit,
@@ -411,4 +417,81 @@ class ExperimentDashboardService:
             recommendation=recommendation_dict,
             chart_data=chart_data,
             financials=financials_dict,
+        )
+
+    @staticmethod
+    def run_cuped_analysis(
+        n_control: int = 5000,
+        n_treatment: int = 5000,
+        baseline_cvr: float = 0.10,
+        true_lift: float = 0.015,
+        correlation: float = 0.60,
+        alpha: float = 0.05,
+        random_seed: int = 42,
+    ) -> tuple[CUPEDResult, Dict[str, Any]]:
+        """Run a CUPED variance-reduction analysis with synthetic or provided data."""
+        y_c, y_t, x_c, x_t = CUPEDEngine.simulate_cuped_data(
+            n_control=n_control,
+            n_treatment=n_treatment,
+            baseline_cvr=baseline_cvr,
+            true_lift=true_lift,
+            correlation=correlation,
+            random_seed=random_seed,
+        )
+        result = CUPEDEngine.compute(y_c, y_t, x_c, x_t, alpha=alpha)
+        chart_data = {
+            "raw_control": y_c[:500].tolist(),
+            "raw_treatment": y_t[:500].tolist(),
+            "x_control": x_c[:500].tolist(),
+            "x_treatment": x_t[:500].tolist(),
+        }
+        return result, chart_data
+
+    @staticmethod
+    def run_delta_method_analysis(
+        num_users_control: int = 1000,
+        num_users_treatment: int = 1000,
+        base_ctr: float = 0.08,
+        true_lift: float = 0.015,
+        mean_sessions: float = 5.0,
+        alpha: float = 0.05,
+        random_seed: int = 42,
+    ) -> tuple[DeltaMethodResult, Dict[str, Any]]:
+        """Run Delta Method ratio metric test on clustered user session observations."""
+        y_c, n_c, y_t, n_t = DeltaMethodEngine.simulate_clustered_ratio_data(
+            num_users_control=num_users_control,
+            num_users_treatment=num_users_treatment,
+            base_ctr=base_ctr,
+            true_lift=true_lift,
+            mean_sessions_per_user=mean_sessions,
+            random_seed=random_seed,
+        )
+        result = DeltaMethodEngine.compute(y_c, n_c, y_t, n_t, alpha=alpha)
+        # Naive calculation treating sessions independently (anti-pattern)
+        sum_y_c, sum_n_c = float(np.sum(y_c)), float(np.sum(n_c))
+        sum_y_t, sum_n_t = float(np.sum(y_t)), float(np.sum(n_t))
+        p_c = sum_y_c / sum_n_c
+        p_t = sum_y_t / sum_n_t
+        naive_se = np.sqrt(p_c * (1.0 - p_c) / sum_n_c + p_t * (1.0 - p_t) / sum_n_t)
+
+        comparison = {
+            "naive_se": float(naive_se),
+            "robust_se": float(result.se_difference),
+            "variance_inflation_factor": float(result.se_difference / naive_se) if naive_se > 0 else 1.0,
+        }
+        return result, comparison
+
+    @staticmethod
+    def run_contextual_bandit_simulation(
+        n_rounds: int = 2000,
+        context_dim: int = 3,
+        alpha: float = 1.0,
+        random_seed: int = 42,
+    ) -> ContextualBanditResult:
+        """Run LinUCB contextual bandit simulation."""
+        return LinUCBBandit.simulate(
+            n_rounds=n_rounds,
+            context_dim=context_dim,
+            alpha=alpha,
+            random_seed=random_seed,
         )

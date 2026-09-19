@@ -5,8 +5,10 @@ Notebook-friendly public API for simulation, frequentist inference, Bayesian
 inference, and Thompson Sampling bandit experiments.
 """
 
-from ab_testing_platform.bandits import ThompsonSamplingBandit
+from ab_testing_platform.bandits import LinUCBBandit, ThompsonSamplingBandit
 from ab_testing_platform.bayesian import BayesianEngine
+from ab_testing_platform.cuped import CUPEDEngine
+from ab_testing_platform.delta_method import DeltaMethodEngine
 from ab_testing_platform.formatting import format_percentage
 from ab_testing_platform.frequentist import StatsEngine
 from ab_testing_platform.sequential import SequentialTest
@@ -14,6 +16,9 @@ from ab_testing_platform.models import (
     BanditRound,
     BanditSummary,
     BayesianResult,
+    ContextualBanditResult,
+    CUPEDResult,
+    DeltaMethodResult,
     ExperimentData,
     FrequentistResult,
     SequentialResult,
@@ -26,9 +31,15 @@ __all__ = [
     "BanditSummary",
     "BayesianEngine",
     "BayesianResult",
+    "ContextualBanditResult",
+    "CUPEDEngine",
+    "CUPEDResult",
+    "DeltaMethodEngine",
+    "DeltaMethodResult",
     "ExperimentData",
     "ExperimentSimulator",
     "FrequentistResult",
+    "LinUCBBandit",
     "SequentialResult",
     "SequentialTest",
     "StatsEngine",

@@ -83,6 +83,31 @@ class TestExperimentDashboardService(unittest.TestCase):
         self.assertEqual(result_unviable.recommendation["status"], "warning")
         self.assertEqual(result_unviable.recommendation["title"], "Real Effect, but Financially Unviable")
 
+    def test_service_run_cuped_analysis(self) -> None:
+        result, chart_data = ExperimentDashboardService.run_cuped_analysis(
+            n_control=1000,
+            n_treatment=1000,
+            correlation=0.60,
+        )
+        self.assertGreater(result.variance_reduction_pct, 10.0)
+        self.assertIn("raw_control", chart_data)
+
+    def test_service_run_delta_method_analysis(self) -> None:
+        result, comparison = ExperimentDashboardService.run_delta_method_analysis(
+            num_users_control=500,
+            num_users_treatment=500,
+        )
+        self.assertGreater(result.ratio_treatment, 0.0)
+        self.assertIn("variance_inflation_factor", comparison)
+
+    def test_service_run_contextual_bandit(self) -> None:
+        result = ExperimentDashboardService.run_contextual_bandit_simulation(
+            n_rounds=500,
+            context_dim=3,
+        )
+        self.assertEqual(result.rounds, 500)
+        self.assertGreater(result.cumulative_reward, 50)
+
 
 if __name__ == "__main__":
     unittest.main()
