@@ -43,6 +43,32 @@ class TestStreamlitApp(unittest.TestCase):
         self.assertIn("ci_lower", analysis.sequential)
         self.assertIn("probability_b_better", analysis.bayesian)
 
+    def test_sidebar_presets_and_controls(self) -> None:
+        from streamlit.testing.v1 import AppTest
+
+        app_path = str(Path(__file__).resolve().parents[1] / "app.py")
+        at = AppTest.from_file(app_path)
+        at.run(timeout=30)
+        self.assertFalse(at.exception)
+
+        # Verify initial values
+        self.assertEqual(at.number_input(key="num_cvr").value, 10.0)
+        self.assertEqual(at.number_input(key="num_lift").value, 12.0)
+
+        # Select E-Commerce preset
+        at.pills(key="preset_archetype").select("E-Commerce").run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.number_input(key="num_cvr").value, 3.5)
+        self.assertEqual(at.number_input(key="num_lift").value, 8.0)
+        self.assertEqual(at.segmented_control(key="seg_conf").value, "95%")
+        self.assertEqual(at.segmented_control(key="seg_power").value, "80%")
+
+        # Direct number input edit switches archetype to Custom
+        at.number_input(key="num_cvr").set_value(5.2).run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.pills(key="preset_archetype").value, "Custom")
+        self.assertEqual(at.number_input(key="num_cvr").value, 5.2)
+
 
 if __name__ == "__main__":
     unittest.main()

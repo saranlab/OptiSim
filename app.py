@@ -354,22 +354,174 @@ with st.sidebar:
     is_simulation = ("Plan & Simulate" in mode_label)
 
     st.markdown("### ⚙️ Statistical Design")
-    alpha = st.slider(
-        "Significance Level (α)",
-        min_value=0.01,
-        max_value=0.10,
-        value=0.05,
-        step=0.01,
-        help="Type I error rate. 0.05 corresponds to 95% anytime-valid confidence.",
-    )
+    st.caption("Configure parameters directly or choose an industry archetype.")
+
+    PRESET_ARCHETYPES = {
+        "SaaS B2B": {
+            "cvr": 10.0,
+            "lift": 12.0,
+            "conf": "95%",
+            "power": "80%",
+            "rev": 50.0,
+            "cost": 1000.0,
+            "traffic": 100000,
+        },
+        "E-Commerce": {
+            "cvr": 3.5,
+            "lift": 8.0,
+            "conf": "95%",
+            "power": "80%",
+            "rev": 25.0,
+            "cost": 2500.0,
+            "traffic": 250000,
+        },
+        "Ad Tech": {
+            "cvr": 1.5,
+            "lift": 4.0,
+            "conf": "99%",
+            "power": "90%",
+            "rev": 5.0,
+            "cost": 500.0,
+            "traffic": 1000000,
+        },
+    }
+
+    # Initialize state keys if not already present
+    if "preset_archetype" not in st.session_state:
+        st.session_state["preset_archetype"] = "Custom"
+    if "num_cvr" not in st.session_state:
+        st.session_state["num_cvr"] = 10.0
+    if "num_lift" not in st.session_state:
+        st.session_state["num_lift"] = 12.0
+    if "seg_conf" not in st.session_state:
+        st.session_state["seg_conf"] = "95%"
+    if "seg_power" not in st.session_state:
+        st.session_state["seg_power"] = "80%"
+    if "num_rev" not in st.session_state:
+        st.session_state["num_rev"] = 10.0
+    if "num_cost" not in st.session_state:
+        st.session_state["num_cost"] = 500.0
+    if "num_traffic" not in st.session_state:
+        st.session_state["num_traffic"] = 100000
+
+    def on_preset_change():
+        choice = st.session_state.get("preset_archetype")
+        if choice in PRESET_ARCHETYPES:
+            p = PRESET_ARCHETYPES[choice]
+            st.session_state["num_cvr"] = float(p["cvr"])
+            st.session_state["num_lift"] = float(p["lift"])
+            st.session_state["seg_conf"] = p["conf"]
+            st.session_state["seg_power"] = p["power"]
+            st.session_state["num_rev"] = float(p["rev"])
+            st.session_state["num_cost"] = float(p["cost"])
+            st.session_state["num_traffic"] = int(p["traffic"])
+
+    def set_custom_preset():
+        if st.session_state.get("preset_archetype") != "Custom":
+            st.session_state["preset_archetype"] = "Custom"
 
     if is_simulation:
-        baseline_cvr = st.slider("Baseline CVR (Group A %)", 1.0, 50.0, 10.0, 0.5)
-        expected_lift = st.slider("Target Relative Lift (%)", -50.0, 50.0, 12.0, 1.0)
-        power_beta = st.slider("Statistical Power (1 - β)", 0.70, 0.95, 0.80, 0.05)
-        beta = 1.0 - power_beta
+        st.markdown("**Industry Benchmark Archetype**")
+        st.pills(
+            "Industry Archetype",
+            options=["Custom", "SaaS B2B", "E-Commerce", "Ad Tech"],
+            key="preset_archetype",
+            on_change=on_preset_change,
+            label_visibility="collapsed",
+        )
+
+    # 1. Confidence Level (Alpha)
+    st.markdown("**Confidence Level (1 - α)**")
+    conf_choice = st.segmented_control(
+        "Confidence Level (1 - α)",
+        options=["95%", "99%", "90%", "Custom"],
+        key="seg_conf",
+        label_visibility="collapsed",
+        help="Type I error rate (α = 1 - Confidence). 95% (α=0.05) is the industry standard for anytime-valid confidence sequences.",
+    )
+    if conf_choice == "95%":
+        alpha = 0.05
+    elif conf_choice == "99%":
+        alpha = 0.01
+    elif conf_choice == "90%":
+        alpha = 0.10
+    else:
+        alpha = st.number_input(
+            "Custom α (Type I Error)",
+            min_value=0.001,
+            max_value=0.200,
+            value=0.050,
+            step=0.005,
+            format="%.3f",
+            on_change=set_custom_preset,
+            help="Significance level α.",
+        )
+
+    if is_simulation:
+        # 2. Power (1 - Beta)
+        st.markdown("**Statistical Power (1 - β)**")
+        power_choice = st.segmented_control(
+            "Statistical Power (1 - β)",
+            options=["80%", "90%", "Custom"],
+            key="seg_power",
+            label_visibility="collapsed",
+            help="Target statistical power. 80% is standard; 90% minimizes false negatives.",
+        )
+        if power_choice == "80%":
+            beta = 0.20
+        elif power_choice == "90%":
+            beta = 0.10
+        else:
+            custom_p = st.number_input(
+                "Custom Power (1 - β)",
+                min_value=0.50,
+                max_value=0.99,
+                value=0.85,
+                step=0.05,
+                format="%.2f",
+                on_change=set_custom_preset,
+            )
+            beta = 1.0 - custom_p
+
+        st.caption(f"Significance: **α = {alpha:.3f}** | Target Power: **{(1.0 - beta)*100:.0f}%**")
+
+        st.markdown("**Conversion Rates & Effect Size**")
+        col_cvr, col_lift = st.columns(2)
+        with col_cvr:
+            baseline_cvr = st.number_input(
+                "Baseline CVR (%)",
+                min_value=0.1,
+                max_value=90.0,
+                step=0.5,
+                format="%.2f",
+                key="num_cvr",
+                on_change=set_custom_preset,
+                help="Control conversion rate baseline (Group A).",
+            )
+        with col_lift:
+            expected_lift = st.number_input(
+                "Target Lift (%)",
+                min_value=-50.0,
+                max_value=100.0,
+                step=0.5,
+                format="%.1f",
+                key="num_lift",
+                on_change=set_custom_preset,
+                help="Minimum Detectable Effect (MDE) relative lift.",
+            )
+
+        treatment_cvr = baseline_cvr * (1.0 + expected_lift / 100.0)
+        st.caption(f"Target Treatment CVR: **{treatment_cvr:.2f}%** ({expected_lift:+.1f}% vs baseline)")
+
+        bandit_rounds = st.number_input(
+            "Bandit Simulation Steps",
+            min_value=5_000,
+            max_value=100_000,
+            value=20_000,
+            step=5_000,
+            help="Rounds for Thompson Sampling & LinUCB simulation.",
+        )
         posterior_samples = 100_000
-        bandit_rounds = st.number_input("Bandit Simulation Rounds", 5_000, 100_000, 20_000, 5_000)
         real_sample_size_a = real_sample_size_b = None
         real_conversions_a = real_conversions_b = None
     else:
@@ -382,16 +534,52 @@ with st.sidebar:
             real_sample_size_b = st.number_input("Sample Size B", 10, 1_000_000, 1_000, 100)
             real_conversions_b = st.number_input("Conversions B", 0, real_sample_size_b, 120, 10)
 
+        cvr_obs_a = (real_conversions_a / real_sample_size_a * 100.0) if real_sample_size_a > 0 else 0.0
+        cvr_obs_b = (real_conversions_b / real_sample_size_b * 100.0) if real_sample_size_b > 0 else 0.0
+        st.caption(f"Observed: **A: {cvr_obs_a:.2f}%** | **B: {cvr_obs_b:.2f}%**")
+
         expected_lift = st.number_input("Planned Target Lift / MDE (%)", 0.1, 100.0, 12.0, 0.5)
-        baseline_cvr = (real_conversions_a / real_sample_size_a * 100.0) if real_sample_size_a > 0 else 10.0
+        baseline_cvr = cvr_obs_a if cvr_obs_a > 0 else 10.0
         beta = 0.20
         posterior_samples = 100_000
         bandit_rounds = 20_000
 
+    st.markdown("---")
     st.markdown("### 💰 Commercial Levers")
-    rev_per_conv = st.number_input("Revenue Per Conversion ($)", 1.0, 10_000.0, 10.0, 1.0)
-    impl_cost = st.number_input("Implementation Setup Cost ($)", 0.0, 500_000.0, 500.0, 100.0)
-    traffic = st.number_input("Projected Annual Traffic", 1_000, 100_000_000, 100_000, 10_000)
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        rev_per_conv = st.number_input(
+            "Rev / Conv ($)",
+            min_value=1.0,
+            max_value=10_000.0,
+            step=1.0,
+            format="%.1f",
+            key="num_rev",
+            on_change=set_custom_preset,
+            help="Monetary revenue generated per conversion event.",
+        )
+    with col_r2:
+        impl_cost = st.number_input(
+            "Setup Cost ($)",
+            min_value=0.0,
+            max_value=500_000.0,
+            step=100.0,
+            format="%.0f",
+            key="num_cost",
+            on_change=set_custom_preset,
+            help="Fixed engineering and setup deployment cost.",
+        )
+    traffic = st.number_input(
+        "Projected Annual Traffic",
+        min_value=1_000,
+        max_value=100_000_000,
+        step=10_000,
+        format="%d",
+        key="num_traffic",
+        on_change=set_custom_preset,
+        help="Estimated annual visitor traffic exposed to experiment.",
+    )
+    st.caption(f"Estimated Annual Audience: **{traffic:,.0f}** users")
 
 # -----------------------------------------------------------------------------
 # 5. Execute Experiment Analysis Service (Cached for Low Latency)
@@ -973,19 +1161,25 @@ with tab4:
             unsafe_allow_html=True,
         )
 
-        col_cuped_ctrl1, col_cuped_ctrl2 = st.columns([2, 1])
+        col_cuped_ctrl1, col_cuped_ctrl2 = st.columns([3, 2])
         with col_cuped_ctrl1:
-            cuped_rho = st.slider(
-                "Pre-Experiment Correlation (ρ)",
-                min_value=0.00,
-                max_value=0.90,
-                value=0.60,
-                step=0.05,
-                help="Correlation between pre-experiment user metric (X) and experiment outcome (Y). Typically 0.50 - 0.70 in e-commerce.",
+            cuped_preset = st.segmented_control(
+                "Covariate Correlation (ρ)",
+                options=["0.30 (Weak)", "0.60 (Typical)", "0.80 (Strong)", "Custom"],
+                default="0.60 (Typical)",
+                help="Pre-experiment correlation ρ with the primary metric. Higher correlation yields larger variance reduction.",
             )
+            if cuped_preset == "0.30 (Weak)":
+                cuped_rho = 0.30
+            elif cuped_preset == "0.60 (Typical)":
+                cuped_rho = 0.60
+            elif cuped_preset == "0.80 (Strong)":
+                cuped_rho = 0.80
+            else:
+                cuped_rho = st.number_input("Custom Correlation (ρ)", 0.00, 0.95, 0.60, 0.05, format="%.2f")
         with col_cuped_ctrl2:
             st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
-            st.caption(f"Theoretical Sample Size Savings: **{cuped_rho**2 * 100:.1f}%**")
+            st.caption(f"Theoretical Sample Size Savings: **{cuped_rho**2 * 100:.1f}%** (Noise reduction: 1 - ρ²)")
 
         cuped_result, _ = get_cached_cuped(
             n_c=5000,
@@ -1089,16 +1283,22 @@ with tab4:
             unsafe_allow_html=True,
         )
 
-        col_delta_ctrl1, col_delta_ctrl2 = st.columns([2, 1])
+        col_delta_ctrl1, col_delta_ctrl2 = st.columns([3, 2])
         with col_delta_ctrl1:
-            mean_sessions = st.slider(
-                "Mean Sessions per User (Cluster Intensity)",
-                min_value=1.0,
-                max_value=12.0,
-                value=5.0,
-                step=0.5,
-                help="Higher session counts per user introduce stronger clustering variance.",
+            delta_preset = st.segmented_control(
+                "Sessions per User (Cluster Intensity)",
+                options=["2.0 (Low)", "5.0 (Moderate)", "8.0 (High)", "Custom"],
+                default="5.0 (Moderate)",
+                help="Average sessions per user. Higher values induce stronger clustering variance.",
             )
+            if delta_preset == "2.0 (Low)":
+                mean_sessions = 2.0
+            elif delta_preset == "5.0 (Moderate)":
+                mean_sessions = 5.0
+            elif delta_preset == "8.0 (High)":
+                mean_sessions = 8.0
+            else:
+                mean_sessions = st.number_input("Custom Mean Sessions", 1.0, 20.0, 5.0, 0.5, format="%.1f")
         with col_delta_ctrl2:
             st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
             st.caption("Unit of Randomization: User | Metric Unit: Session")
