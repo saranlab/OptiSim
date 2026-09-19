@@ -6,6 +6,14 @@ Built with Streamlit, Plotly, NumPy, and SciPy.
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+# Ensure project root relative path is always prioritized in sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
 import numpy as np
 import plotly.graph_objects as go
 from scipy import stats
