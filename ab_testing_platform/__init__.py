@@ -11,8 +11,6 @@ from ab_testing_platform.cuped import CUPEDEngine
 from ab_testing_platform.delta_method import DeltaMethodEngine
 from ab_testing_platform.formatting import format_percentage
 from ab_testing_platform.frequentist import StatsEngine
-from ab_testing_platform.optimizer import PortfolioOptimizer
-from ab_testing_platform.sequential import SequentialTest
 from ab_testing_platform.models import (
     BanditRound,
     BanditSummary,
@@ -26,6 +24,8 @@ from ab_testing_platform.models import (
     OptimizationResult,
     SequentialResult,
 )
+from ab_testing_platform.optimizer import PortfolioOptimizer
+from ab_testing_platform.sequential import SequentialTest
 from ab_testing_platform.simulation import ExperimentSimulator
 from ab_testing_platform.validation import ValidationError
 

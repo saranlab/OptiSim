@@ -22,12 +22,11 @@ import streamlit as st
 
 from ab_testing_platform import (
     CUPEDEngine,
-    CandidateFeature,
     DeltaMethodEngine,
-    OptimizationResult,
-    PortfolioOptimizer,
     StatsEngine,
 )
+from ab_testing_platform.models import CandidateFeature, OptimizationResult
+from ab_testing_platform.optimizer import PortfolioOptimizer
 from dashboard.services import ExperimentDashboardService
 
 # -----------------------------------------------------------------------------
