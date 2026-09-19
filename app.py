@@ -20,7 +20,14 @@ import plotly.graph_objects as go
 from scipy import stats
 import streamlit as st
 
-from ab_testing_platform import CUPEDEngine, DeltaMethodEngine, StatsEngine
+from ab_testing_platform import (
+    CUPEDEngine,
+    CandidateFeature,
+    DeltaMethodEngine,
+    OptimizationResult,
+    PortfolioOptimizer,
+    StatsEngine,
+)
 from dashboard.services import ExperimentDashboardService
 
 # -----------------------------------------------------------------------------
@@ -759,6 +766,23 @@ bayes = analysis.bayesian
 rec = analysis.recommendation
 fin = analysis.financials
 
+p_pool = (exp["conversions_a"] + exp["conversions_b"]) / max(1, exp["sample_size_a"] + exp["sample_size_b"])
+se_pool = np.sqrt(p_pool * (1.0 - p_pool) * (1.0 / max(1, exp["sample_size_a"]) + 1.0 / max(1, exp["sample_size_b"])))
+
+point_gross = fin["gross_uplift"]
+point_net = fin["net_benefit"]
+point_roi = fin["roi"]
+
+defensible_gross = traffic * seq["ci_lower"] * rev_per_conv
+defensible_net = defensible_gross - impl_cost
+defensible_roi = (defensible_net / impl_cost * 100.0) if impl_cost > 0 else 0.0
+
+daily_gain = fin["gross_uplift"] / 365.0
+breakeven_str = f"{int(np.ceil(impl_cost / daily_gain))} days" if daily_gain > 0 and impl_cost > 0 else ("0 days (no setup cost)" if impl_cost == 0 else "Indefinite")
+
+seq_rel_lower = seq["ci_lower"] / max(1e-9, exp["conversion_rate_a"])
+seq_rel_upper = seq["ci_upper"] / max(1e-9, exp["conversion_rate_a"])
+
 # -----------------------------------------------------------------------------
 # 6. Main Dashboard View
 # -----------------------------------------------------------------------------
@@ -801,11 +825,73 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab1, tab2, tab3, tab4 = st.tabs([
+# -----------------------------------------------------------------------------
+# Executive Decision Memo & Institutional Governance Export
+# -----------------------------------------------------------------------------
+memo_markdown = f"""# OptiSim // Executive Experimentation Decision Memo
+
+**Evaluation Timestamp:** Production Session Audit
+**Target Metric:** Primary Conversion Rate (Bernoulli Unit Experiment)
+**Total Sample Size:** {exp['sample_size_a'] + exp['sample_size_b']:,} observations (Control A: {exp['sample_size_a']:,} | Treatment B: {exp['sample_size_b']:,})
+
+---
+
+### 1. Executive Verdict & Operational Mandate
+- **Classification:** **{badge_title}** — {rec['title']}
+- **Core Directive:** {rec['message']}
+- **Continuous Monitoring Audit:** Time-uniform confidence sequence (Waudby-Smith & Ramdas 2021) is **{'CONFIRMED CONCLUSIVE' if seq['is_conclusive'] else 'INCONCLUSIVE / ACCUMULATING EVIDENCE'}**. False positive rate is strictly bounded at $\\alpha = {alpha:.3f}$ under continuous peeking.
+
+---
+
+### 2. Multi-Engine Inferential Synthesis
+| Metric / Parameter | Control (A) | Treatment (B) | Delta / Effect Size | Methodological Guarantee |
+| :--- | :--- | :--- | :--- | :--- |
+| **Empirical CVR** | {exp['conversion_rate_a']:.2%} ({exp['conversions_a']:,} conv) | {exp['conversion_rate_b']:.2%} ({exp['conversions_b']:,} conv) | {freq['relative_lift']:+.2%} relative | Pooled SE: {se_pool:.5f} |
+| **Fixed Horizon Z-Test** | — | — | Z = {freq['z_statistic']:.3f} | p = {freq['p_value']:.4e} ({'Significant' if freq['is_significant'] else 'Not Significant'} at $\\alpha={alpha:.2f}$) |
+| **Anytime Confidence Sequence** | — | — | [{seq['ci_lower']*100:+.2f} pp, {seq['ci_upper']*100:+.2f} pp] | Rel Lift CS: [{seq_rel_lower:+.2%}, {seq_rel_upper:+.2%}] |
+| **Bayesian Posterior** | — | — | P(B > A) = {bayes['probability_b_better']:.1%} | Expected Loss: {bayes['expected_loss_choose_b']:.5f} |
+
+---
+
+### 3. Commercial Impact & Winner's Curse Protection
+- **Annual Traffic Projection:** {traffic:,} users
+- **Contribution Margin:** ${rev_per_conv:,.2f} per conversion
+- **Implementation Sunk Cost:** ${impl_cost:,.2f}
+- **Observed Point Projection:** **${point_net:,.2f}** net return ({point_roi:.1f}% ROI) — *Subject to upward selection bias (Winner's Curse).*
+- **Conservative Defensible Floor:** **${defensible_net:,.2f}** net return ({defensible_roi:.1f}% Defensible ROI) — *Guaranteed lower bound for fiscal accountability.*
+- **Breakeven Horizon:** {breakeven_str}
+
+---
+
+### 4. Enterprise Governance & Sign-Off Checklist
+- [ ] **Data Science Lead:** Sample ratio mismatch (SRM) verified, peeking penalty applied, SUTVA hold validated.
+- [ ] **Platform / Infrastructure Architect:** Latency SLA impact (<35ms), edge cache invalidation, and kill-switch deployed.
+- [ ] **Product VP / Commercial Sponsor:** Sign-off based on Conservative Defensible Floor (${defensible_net:,.2f}).
+"""
+
+with st.expander("Executive Decision Memo & Institutional Governance Export", expanded=False):
+    st.markdown(
+        """
+        <div style="font-size: 0.88rem; color: #475569; margin-bottom: 10px;">
+            Institutional-grade decision memo synthesizing causal inference, financial floor, and governance sign-off criteria for leadership and PRDs.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.download_button(
+        label="Download Executive Decision Memo (.md)",
+        data=memo_markdown,
+        file_name="executive_decision_memo.md",
+        mime="text/markdown",
+    )
+    st.markdown(memo_markdown)
+
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "Statistical Inference & Monitoring",
     "Financial Impact & Projections",
     "Adaptive Optimization & Bandits",
     "Methodology & Mathematical Foundations",
+    "Decision Optimization & OR Lab",
 ])
 
 # -----------------------------------------------------------------------------
@@ -2077,6 +2163,369 @@ with tab4:
                 """,
                 unsafe_allow_html=True,
             )
+
+# -----------------------------------------------------------------------------
+# TAB 5: Decision Optimization & OR Lab
+# -----------------------------------------------------------------------------
+with tab5:
+    st.markdown(
+        """
+        <div class="callout-box">
+            <div class="callout-title">Prescriptive Decision Science: 0-1 Multi-Dimensional Knapsack MILP Portfolio Optimizer</div>
+            <p class="callout-text">
+                Moving beyond isolated inference (<em>"Does variant B beat variant A?"</em>) to enterprise-scale capital allocation 
+                (<em>"Which subset of winning experiments should we deploy given finite capital, engineering bandwidth, and latency budgets?"</em>). 
+                OptiSim formulates the deployment decision as a <strong>Multi-Dimensional 0-1 Knapsack Mixed-Integer Linear Program (MILP)</strong> 
+                and solves it to provable global optimality using SciPy's HiGHS branch-and-cut solver.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                Portfolio Resource Constraints & Risk Preferences
+            </div>
+            <div style="font-size: 0.84rem; color: #64748B; margin-bottom: 16px;">
+                Configure the organizational ceiling across development sprints, infrastructure latency SLAs, and capital budgets.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        col_or1, col_or2, col_or3, col_or4 = st.columns(4)
+        with col_or1:
+            or_budget = st.number_input(
+                "Max Deployment Budget ($)",
+                min_value=5000.0,
+                max_value=250000.0,
+                value=25000.0,
+                step=2500.0,
+                help="Total allowable upfront implementation & licensing cost across all selected features.",
+                key="or_budget",
+            )
+        with col_or2:
+            or_latency = st.number_input(
+                "Max Latency SLA Overhead (ms)",
+                min_value=10.0,
+                max_value=200.0,
+                value=35.0,
+                step=5.0,
+                help="Maximum allowable cumulative p95 client page load or API latency degradation.",
+                key="or_latency",
+            )
+        with col_or3:
+            or_effort = st.number_input(
+                "Max Engineering Sprint Capacity (Pts)",
+                min_value=10.0,
+                max_value=150.0,
+                value=40.0,
+                step=5.0,
+                help="Maximum engineering capacity (story points) allocated for deployment across squads.",
+                key="or_effort",
+            )
+        with col_or4:
+            or_risk = st.slider(
+                "Risk Penalty Weight (lambda)",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.10,
+                step=0.05,
+                help="Risk penalty factor subtracted from expected annual value per unit of operational risk.",
+                key="or_risk",
+            )
+
+    # Candidate Feature Pool
+    candidate_pool = PortfolioOptimizer.get_default_candidate_pool(
+        current_experiment_value=max(0.0, defensible_net),
+        current_experiment_cost=impl_cost,
+    )
+
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 4px;">
+                Candidate Feature Pool (A/B Test Pipeline)
+            </div>
+            <div style="font-size: 0.84rem; color: #64748B; margin-bottom: 12px;">
+                Pipeline of validated experiments and platform capabilities competing for production roll-out.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        pool_df = pd.DataFrame([
+            {
+                "Feature ID": f.feature_id,
+                "Feature Name": f.name,
+                "Category": f.category,
+                "Expected Value ($/yr)": f"${f.expected_value:,.0f}",
+                "Setup Cost ($)": f"${f.cost:,.0f}",
+                "Latency (ms)": f"{f.latency_ms:.1f} ms",
+                "Effort (Pts)": f"{f.effort_points:.0f} pts",
+                "Risk Score": f"{f.risk_score:.1f}",
+                "Conflict Group": f.conflict_group or "None",
+            }
+            for f in candidate_pool
+        ])
+        st.dataframe(pool_df, use_container_width=True, hide_index=True)
+
+    # Run MILP optimization
+    opt_result = ExperimentDashboardService.run_portfolio_optimization(
+        features=candidate_pool,
+        max_budget=or_budget,
+        max_latency_ms=or_latency,
+        max_effort_points=or_effort,
+        risk_aversion=or_risk,
+        enforce_conflicts=True,
+        current_experiment_value=max(0.0, defensible_net),
+        current_experiment_cost=impl_cost,
+    )
+
+    # Executive KPI Metric Cards
+    col_kpi1, col_kpi2, col_kpi3, col_kpi4 = st.columns(4)
+    with col_kpi1:
+        net_portfolio_gain = opt_result.total_value - opt_result.total_cost
+        st.metric(
+            label="Optimized Portfolio Value",
+            value=f"${opt_result.total_value:,.0f}",
+            delta=f"+${net_portfolio_gain:,.0f} Net Gain" if net_portfolio_gain > 0 else f"${net_portfolio_gain:,.0f}",
+            help="Total expected annual commercial value generated by the optimal selection.",
+        )
+    with col_kpi2:
+        st.metric(
+            label="Budget Utilization",
+            value=f"{opt_result.budget_utilization_pct:.1f}%",
+            delta=f"${opt_result.total_cost:,.0f} / ${or_budget:,.0f}",
+            delta_color="off",
+            help="Total implementation expenditure vs available budget ceiling.",
+        )
+    with col_kpi3:
+        st.metric(
+            label="Latency Overhead",
+            value=f"{opt_result.total_latency_ms:.1f} ms",
+            delta=f"{opt_result.latency_utilization_pct:.1f}% of {or_latency:.0f}ms cap",
+            delta_color="off",
+            help="Cumulative client-side latency overhead consumed vs budget.",
+        )
+    with col_kpi4:
+        st.metric(
+            label="Engineering Capacity",
+            value=f"{opt_result.total_effort_points:.0f} Pts",
+            delta=f"{opt_result.effort_utilization_pct:.1f}% of {or_effort:.0f} Pts",
+            delta_color="off",
+            help="Engineering story points allocated across sprints.",
+        )
+
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    # Selected vs Deferred Features
+    col_sel, col_rej = st.columns(2)
+    with col_sel:
+        with st.container(border=True):
+            st.markdown(
+                f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 0.95rem; font-weight: 700; color: #14532D;">Approved for Deployment ({len(opt_result.selected_features)})</span>
+                    <span class="verdict-badge badge-success" style="font-size: 0.72rem;">MILP OPTIMAL</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if opt_result.selected_features:
+                for feat in opt_result.selected_features:
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #F0FDF4; border: 1px solid #BBF7D0; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 700; font-size: 0.88rem; color: #14532D;">{feat.name}</span>
+                                <span style="font-size: 0.75rem; font-weight: 600; color: #166534; background: #DCFCE7; padding: 2px 8px; border-radius: 4px;">{feat.category}</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 0.80rem; color: #166534;">
+                                <span>Value: <strong>${feat.expected_value:,.0f}</strong></span>
+                                <span>Cost: <strong>${feat.cost:,.0f}</strong></span>
+                                <span>Latency: <strong>{feat.latency_ms:.1f}ms</strong></span>
+                                <span>Effort: <strong>{feat.effort_points:.0f}pts</strong></span>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("No features selected under current constraints. Expand budget or latency limits.")
+
+    with col_rej:
+        with st.container(border=True):
+            st.markdown(
+                f"""
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 0.95rem; font-weight: 700; color: #475569;">Deferred / Excluded ({len(opt_result.rejected_features)})</span>
+                    <span class="verdict-badge badge-warning" style="font-size: 0.72rem;">CONSTRAINED</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if opt_result.rejected_features:
+                for feat in opt_result.rejected_features:
+                    is_conflict = feat.conflict_group and any(s.conflict_group == feat.conflict_group for s in opt_result.selected_features)
+                    reason = "Mutually exclusive alternative chosen" if is_conflict else "Exceeds resource ceiling or lower ROI"
+                    st.markdown(
+                        f"""
+                        <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 14px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-weight: 600; font-size: 0.88rem; color: #334155;">{feat.name}</span>
+                                <span style="font-size: 0.75rem; color: #64748B;">{reason}</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 0.80rem; color: #64748B;">
+                                <span>Value: ${feat.expected_value:,.0f}</span>
+                                <span>Cost: ${feat.cost:,.0f}</span>
+                                <span>Latency: {feat.latency_ms:.1f}ms</span>
+                                <span>Effort: {feat.effort_points:.0f}pts</span>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+            else:
+                st.info("All candidate features were successfully selected.")
+
+    st.markdown("<div style='height: 8px;'></div>", unsafe_allow_html=True)
+
+    # Plotly Visualizations: Efficient Frontier & Resource Saturation
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        with st.container(border=True):
+            st.markdown(
+                """
+                <div style="font-size: 0.92rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
+                    Capital-Value Efficient Frontier
+                </div>
+                <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 8px;">
+                    Pareto-optimal envelope showing maximum achievable commercial value across budget steps.
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#2563EB; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Optimal Frontier</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#10B981; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Operating Point</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            frontier = opt_result.efficient_frontier
+            if frontier:
+                f_budgets = [pt["budget"] for pt in frontier]
+                f_values = [pt["value"] for pt in frontier]
+                fig_ef = go.Figure()
+                fig_ef.add_trace(go.Scatter(
+                    x=f_budgets,
+                    y=f_values,
+                    mode="lines+markers",
+                    line=dict(color="#2563EB", width=2.5),
+                    marker=dict(size=7, color="#2563EB"),
+                    name="Optimal Frontier",
+                    hovertemplate="Budget: $%{x:,.0f}<br>Value: $%{y:,.0f}<extra></extra>",
+                ))
+                fig_ef.add_trace(go.Scatter(
+                    x=[opt_result.total_cost],
+                    y=[opt_result.total_value],
+                    mode="markers",
+                    marker=dict(size=14, color="#10B981", symbol="diamond", line=dict(color="#065F46", width=2)),
+                    name="Operating Point",
+                    hovertemplate="Current Operating Point<br>Cost: $%{x:,.0f}<br>Value: $%{y:,.0f}<extra></extra>",
+                ))
+                fig_ef.update_layout(
+                    xaxis=dict(title="Deployment Budget ($)", automargin=True),
+                    yaxis=dict(title="Max Portfolio Value ($)", automargin=True),
+                    showlegend=False,
+                )
+                st.plotly_chart(format_chart(fig_ef, height=300), use_container_width=True)
+            else:
+                st.info("Frontier calculation unavailable.")
+
+    with col_g2:
+        with st.container(border=True):
+            st.markdown(
+                """
+                <div style="font-size: 0.92rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">
+                    Multi-Dimensional Capacity Saturation
+                </div>
+                <div style="font-size: 0.80rem; color: #64748B; margin-bottom: 8px;">
+                    Resource consumption percentage across capital, latency SLA, and developer story points.
+                </div>
+                <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#10B981; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Safe (&lt;85%)</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#F59E0B; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Near Cap (85-100%)</span>
+                    <span><span style="display:inline-block; width:12px; height:12px; background:#EF4444; border-radius:2px; vertical-align:middle; margin-right:4px;"></span> Exceeded (&gt;100%)</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            res_names = ["Budget ($)", "Latency (ms)", "Dev Effort (Pts)"]
+            res_pcts = [
+                opt_result.budget_utilization_pct,
+                opt_result.latency_utilization_pct,
+                opt_result.effort_utilization_pct,
+            ]
+            colors = ["#10B981" if p < 85 else "#F59E0B" if p <= 100 else "#EF4444" for p in res_pcts]
+            fig_res = go.Figure(go.Bar(
+                x=res_pcts,
+                y=res_names,
+                orientation="h",
+                marker_color=colors,
+                text=[f"{p:.1f}%" for p in res_pcts],
+                textposition="outside",
+            ))
+            fig_res.add_vline(x=100.0, line_dash="dash", line_color="#EF4444", annotation_text="100% SLA Limit", annotation_position="top right")
+            fig_res.update_layout(
+                xaxis=dict(title="Capacity Consumed (%)", range=[0, max(120, max(res_pcts) + 20)], automargin=True),
+                yaxis=dict(automargin=True),
+                showlegend=False,
+            )
+            st.plotly_chart(format_chart(fig_res, height=300), use_container_width=True)
+
+    # Mathematical Foundations & Dual Prices
+    with st.container(border=True):
+        st.markdown(
+            r"""
+            <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 6px;">
+                Operations Research Formulation: Multi-Dimensional 0-1 Knapsack MILP
+            </div>
+            <div style="font-size: 0.85rem; color: #475569; line-height: 1.6;">
+                Let $x_i \in \{0, 1\}$ denote the binary deployment indicator for candidate feature $i \in \{1, \dots, n\}$. 
+                The optimization program is formulated as:
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            r"""
+            $$\max_{\mathbf{x} \in \{0, 1\}^n} \quad \sum_{i=1}^n \left( v_i - \lambda r_i \right) x_i$$
+
+            $$\text{subject to} \quad \sum_{i=1}^n c_i x_i \le B \quad \text{(Deployment Capital Budget)}$$
+
+            $$\sum_{i=1}^n \ell_i x_i \le L \quad \text{(Latency SLA Degradation Limit)}$$
+
+            $$\sum_{i=1}^n e_i x_i \le E \quad \text{(Engineering Sprint Capacity)}$$
+
+            $$\sum_{j \in \mathcal{C}_k} x_j \le 1 \quad \forall k \quad \text{(Mutually Exclusive Feature Groups)}$$
+
+            | Mathematical Symbol | Practical Operational Role |
+            | :--- | :--- |
+            | $v_i - \lambda r_i$ | Risk-adjusted expected annual commercial return of feature $i$. |
+            | $c_i, B$ | Feature implementation cost ($) and total quarterly capital budget ($B$). |
+            | $\ell_i, L$ | Client-side/API latency impact (ms) and max allowable SLA latency budget ($L$). |
+            | $e_i, E$ | Engineering effort (story points) and total sprint engineering bandwidth ($E$). |
+            | $\mathcal{C}_k$ | Mutually exclusive candidate sets (e.g. variants competing for the exact same UI surface). |
+
+            <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px;">
+                <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Algorithmic Guarantee</div>
+                <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
+                    Unlike heuristic greedy sorting (which fails under multiple knapsack dimensions and conflict sets), SciPy's HiGHS branch-and-cut MILP solver guarantees finding the exact global optimum, proving zero regret across all combinatorial allocation subsets.
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 # -----------------------------------------------------------------------------
 # 7. Footer

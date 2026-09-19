@@ -178,3 +178,37 @@ class ContextualBanditResult:
     history_rounds: List[int]
     history_regrets: List[float]
     history_rewards: List[float]
+
+
+@dataclass(frozen=True)
+class CandidateFeature:
+    """A winning experiment variant / feature proposed for production deployment."""
+
+    feature_id: str
+    name: str
+    category: str
+    expected_value: float  # Annualized incremental value/revenue ($)
+    cost: float  # Implementation & maintenance cost ($)
+    latency_ms: float  # Server/API latency overhead (ms)
+    effort_points: float  # Engineering effort (story points / person-weeks)
+    risk_score: float = 0.0  # Operational risk factor in [0, 1]
+    conflict_group: Optional[str] = None  # Mutual exclusion grouping (e.g. "checkout_flow")
+
+
+@dataclass(frozen=True)
+class OptimizationResult:
+    """Global optimum for the multi-dimensional knapsack feature roll-out."""
+
+    selected_features: List[CandidateFeature]
+    rejected_features: List[CandidateFeature]
+    total_value: float
+    total_cost: float
+    total_latency_ms: float
+    total_effort_points: float
+    budget_utilization_pct: float
+    latency_utilization_pct: float
+    effort_utilization_pct: float
+    is_feasible: bool
+    status_message: str
+    efficient_frontier: List[Dict[str, float]]
+

@@ -9,6 +9,7 @@ import numpy as np
 
 from ab_testing_platform import (
     BayesianEngine,
+    CandidateFeature,
     ContextualBanditResult,
     CUPEDEngine,
     CUPEDResult,
@@ -16,6 +17,8 @@ from ab_testing_platform import (
     DeltaMethodResult,
     ExperimentSimulator,
     LinUCBBandit,
+    OptimizationResult,
+    PortfolioOptimizer,
     SequentialTest,
     StatsEngine,
     ThompsonSamplingBandit,
@@ -541,3 +544,30 @@ class ExperimentDashboardService:
             alpha=alpha,
             random_seed=random_seed,
         )
+
+    @staticmethod
+    def run_portfolio_optimization(
+        features: Optional[List[CandidateFeature]] = None,
+        max_budget: float = 20000.0,
+        max_latency_ms: float = 35.0,
+        max_effort_points: float = 40.0,
+        risk_aversion: float = 0.10,
+        enforce_conflicts: bool = True,
+        current_experiment_value: float = 45000.0,
+        current_experiment_cost: float = 1200.0,
+    ) -> OptimizationResult:
+        """Run 0-1 Knapsack MILP optimization over candidate experiment features."""
+        if features is None or len(features) == 0:
+            features = PortfolioOptimizer.get_default_candidate_pool(
+                current_experiment_value=current_experiment_value,
+                current_experiment_cost=current_experiment_cost,
+            )
+        return PortfolioOptimizer.solve(
+            features=features,
+            max_budget=max_budget,
+            max_latency_ms=max_latency_ms,
+            max_effort_points=max_effort_points,
+            risk_aversion=risk_aversion,
+            enforce_conflicts=enforce_conflicts,
+        )
+

@@ -69,6 +69,25 @@ class TestStreamlitApp(unittest.TestCase):
         self.assertEqual(at.pills(key="preset_archetype").value, "Custom")
         self.assertEqual(at.number_input(key="num_cvr").value, 5.2)
 
+    def test_tab5_or_optimization_controls(self) -> None:
+        from streamlit.testing.v1 import AppTest
+
+        app_path = str(Path(__file__).resolve().parents[1] / "app.py")
+        at = AppTest.from_file(app_path)
+        at.run(timeout=30)
+        self.assertFalse(at.exception)
+
+        # Verify default OR parameters
+        self.assertEqual(at.number_input(key="or_budget").value, 25000.0)
+        self.assertEqual(at.number_input(key="or_latency").value, 35.0)
+        self.assertEqual(at.number_input(key="or_effort").value, 40.0)
+        self.assertEqual(at.slider(key="or_risk").value, 0.10)
+
+        # Update budget and rerun
+        at.number_input(key="or_budget").set_value(50000.0).run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.number_input(key="or_budget").value, 50000.0)
+
 
 if __name__ == "__main__":
     unittest.main()
