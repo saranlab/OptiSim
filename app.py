@@ -15,10 +15,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 from scipy import stats
 import streamlit as st
 
+from ab_testing_platform import CUPEDEngine, DeltaMethodEngine, StatsEngine
 from dashboard.services import ExperimentDashboardService
 
 # -----------------------------------------------------------------------------
@@ -26,7 +28,7 @@ from dashboard.services import ExperimentDashboardService
 # -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="OptiSim // Experimentation Studio",
-    page_icon="⚖️",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -349,19 +351,24 @@ def format_chart(fig: go.Figure, height: int = 300) -> go.Figure:
 # 4. Sidebar Controls
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("## ⚖️ **OptiSim Studio**")
+    st.markdown("## **OptiSim Studio**")
     st.caption("Causal Inference & Experimentation Architecture")
     st.markdown("---")
 
     mode_label = st.radio(
         "Experiment Mode",
-        options=["Plan & Simulate (Monte Carlo)", "Analyze Real Data (Observed)"],
+        options=[
+            "Plan & Simulate (Monte Carlo)",
+            "Upload CSV Dataset (Raw User Logs)",
+            "Analyze Real Data (Observed Counts)",
+        ],
         index=0,
-        help="Simulate with synthetic Monte Carlo sample paths, or analyze observed counts.",
+        help="Simulate with synthetic Monte Carlo sample paths, upload user-level experiment logs, or analyze observed counts.",
     )
     is_simulation = ("Plan & Simulate" in mode_label)
+    is_csv = ("Upload CSV Dataset" in mode_label)
 
-    st.markdown("### ⚙️ Statistical Design")
+    st.markdown("### Statistical Design")
     st.caption("Configure parameters directly or choose an industry archetype.")
 
     PRESET_ARCHETYPES = {
@@ -532,6 +539,85 @@ with st.sidebar:
         posterior_samples = 100_000
         real_sample_size_a = real_sample_size_b = None
         real_conversions_a = real_conversions_b = None
+
+    elif is_csv:
+        st.markdown("#### Experiment Log Ingestion")
+        uploaded_csv = st.file_uploader(
+            "Upload User-Level CSV",
+            type=["csv"],
+            help="Upload raw logs with columns: user_id, variant, converted, pre_spend, sessions",
+        )
+        if st.button("Load Sample Dataset", help="Load pre-built 10,000 user checkout experiment dataset", width="stretch"):
+            sample_path = PROJECT_ROOT / "sample_experiment_data.csv"
+            if sample_path.exists():
+                st.session_state["raw_df"] = pd.read_csv(sample_path)
+                st.session_state["raw_df_name"] = "Sample Checkout Experiment (N=10,000)"
+
+        if uploaded_csv is not None:
+            st.session_state["raw_df"] = pd.read_csv(uploaded_csv)
+            st.session_state["raw_df_name"] = uploaded_csv.name
+
+        df_loaded = st.session_state.get("raw_df")
+        if df_loaded is None:
+            sample_path = PROJECT_ROOT / "sample_experiment_data.csv"
+            if sample_path.exists():
+                df_loaded = pd.read_csv(sample_path)
+                st.session_state["raw_df"] = df_loaded
+                st.session_state["raw_df_name"] = "Sample Checkout Experiment (N=10,000)"
+
+        if df_loaded is not None:
+            v_cols = [c for c in df_loaded.columns if c.lower() in ["variant", "group", "arm", "treatment", "variation"]]
+            v_col = v_cols[0] if v_cols else df_loaded.columns[1]
+            y_cols = [c for c in df_loaded.columns if c.lower() in ["converted", "conversion", "is_converted", "y", "target"]]
+            y_col = y_cols[0] if y_cols else df_loaded.columns[2]
+
+            groups = list(df_loaded[v_col].unique())
+            g_a = df_loaded[df_loaded[v_col] == groups[0]]
+            g_b = df_loaded[df_loaded[v_col] == groups[1]] if len(groups) > 1 else df_loaded[df_loaded[v_col] == groups[0]]
+
+            real_sample_size_a = len(g_a)
+            real_conversions_a = int(pd.to_numeric(g_a[y_col], errors="coerce").fillna(0).sum())
+            real_sample_size_b = len(g_b)
+            real_conversions_b = int(pd.to_numeric(g_b[y_col], errors="coerce").fillna(0).sum())
+
+            cvr_obs_a = (real_conversions_a / real_sample_size_a * 100.0) if real_sample_size_a > 0 else 0.0
+            cvr_obs_b = (real_conversions_b / real_sample_size_b * 100.0) if real_sample_size_b > 0 else 0.0
+
+            # SRM (Sample Ratio Mismatch)
+            expected_n = (real_sample_size_a + real_sample_size_b) / 2.0
+            chi2_stat = ((real_sample_size_a - expected_n) ** 2 / expected_n) + ((real_sample_size_b - expected_n) ** 2 / expected_n)
+            srm_p = 1.0 - stats.chi2.cdf(chi2_stat, df=1)
+
+            st.markdown(
+                f"""
+                <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 10px; margin-top: 6px; font-size: 0.80rem;">
+                    <div style="font-weight: 700; color: #0F172A; margin-bottom: 4px;">{st.session_state.get('raw_df_name', 'Dataset')}</div>
+                    <div><strong>A:</strong> {real_sample_size_a:,} users | {real_conversions_a:,} conv ({cvr_obs_a:.2f}%)</div>
+                    <div><strong>B:</strong> {real_sample_size_b:,} users | {real_conversions_b:,} conv ({cvr_obs_b:.2f}%)</div>
+                    <div style="margin-top: 4px; color: {'#166534' if srm_p >= 0.001 else '#991B1B'}; font-weight: 600;">
+                        SRM: {'PASS (p=' + f'{srm_p:.3f}' + ')' if srm_p >= 0.001 else 'FAIL (Mismatch)'}
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            expected_lift = float(st.number_input("Planned Target Lift / MDE (%)", 0.1, 100.0, 12.0, 0.5))
+            baseline_cvr = cvr_obs_a if cvr_obs_a > 0 else 10.0
+            beta = 0.20
+            posterior_samples = 100_000
+            bandit_rounds = 20_000
+        else:
+            real_sample_size_a = 1000
+            real_conversions_a = 100
+            real_sample_size_b = 1000
+            real_conversions_b = 120
+            expected_lift = 12.0
+            baseline_cvr = 10.0
+            beta = 0.20
+            posterior_samples = 100_000
+            bandit_rounds = 20_000
+
     else:
         st.markdown("#### Observed Conversions")
         col_s1, col_s2 = st.columns(2)
@@ -553,7 +639,7 @@ with st.sidebar:
         bandit_rounds = 20_000
 
     st.markdown("---")
-    st.markdown("### 💰 Commercial Levers")
+    st.markdown("### Commercial Levers & Audience Scale")
     col_r1, col_r2 = st.columns(2)
     with col_r1:
         rev_per_conv = st.number_input(
@@ -716,14 +802,14 @@ st.markdown(
 )
 
 tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 Diagnostic & Inference",
-    "💰 Financial & Winner's Curse",
-    "🧪 Bandits & Personalization",
-    "📐 Advanced Methodology & Rigor",
+    "Statistical Inference & Monitoring",
+    "Financial Impact & Projections",
+    "Adaptive Optimization & Bandits",
+    "Methodology & Mathematical Foundations",
 ])
 
 # -----------------------------------------------------------------------------
-# TAB 1: Diagnostic & Anytime Inference
+# TAB 1: Statistical Inference & Monitoring
 # -----------------------------------------------------------------------------
 with tab1:
     col_m1, col_m2, col_m3, col_m4 = st.columns(4)
@@ -893,6 +979,207 @@ with tab1:
             )
             st.plotly_chart(format_chart(fig_bayes, height=270), use_container_width=True)
 
+    # 3. Sequential Monitoring Trajectory
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Anytime-Valid Sequential Trajectory Over Sample Size</div>
+            <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Time-uniform confidence sequence envelope [Lₙ, Uₙ] narrowing as sample observations accumulate. Continuous monitoring is mathematically valid; early stopping occurs when Lₙ > 0%.</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
+                <span><span style="color: #2563EB; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Running Treatment Lift</span>
+                <span><span style="color: #93C5FD; font-weight: 900; font-size: 1.1rem; line-height: 0;">┆</span> Confidence Sequence Envelope [Lₙ, Uₙ]</span>
+                <span><span style="color: #DC2626; font-weight: 900;">┆</span> Null Horizon (0%)</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if analysis.chart_data and analysis.chart_data.get("convergence"):
+            conv_pts = analysis.chart_data["convergence"]
+            x_n = [pt["sample_size"] for pt in conv_pts]
+            y_lift = [pt.get("lift", (pt["cvr_b"] - pt["cvr_a"])) * 100.0 for pt in conv_pts]
+            y_cs_low = [pt.get("cs_lower", 0.0) * 100.0 for pt in conv_pts]
+            y_cs_high = [pt.get("cs_upper", 0.0) * 100.0 for pt in conv_pts]
+
+            fig_seq_traj = go.Figure()
+            fig_seq_traj.add_trace(go.Scatter(
+                x=x_n, y=y_cs_high,
+                mode="lines",
+                line=dict(color="#93C5FD", width=1.5, dash="dash"),
+                name="CS Upper (U_n)",
+                showlegend=False,
+            ))
+            fig_seq_traj.add_trace(go.Scatter(
+                x=x_n, y=y_cs_low,
+                mode="lines",
+                line=dict(color="#93C5FD", width=1.5, dash="dash"),
+                fill="tonexty",
+                fillcolor="rgba(37, 99, 235, 0.08)",
+                name="CS Lower (L_n)",
+                showlegend=False,
+            ))
+            fig_seq_traj.add_trace(go.Scatter(
+                x=x_n, y=y_lift,
+                mode="lines+markers",
+                line=dict(color="#1D4ED8", width=2.5),
+                marker=dict(size=4, color="#1D4ED8"),
+                name="Running Lift",
+                showlegend=False,
+            ))
+            fig_seq_traj.add_hline(
+                y=0.0,
+                line_dash="dash",
+                line_color="#DC2626",
+                line_width=1.5,
+                annotation_text=" Null (0%) ",
+                annotation_position="bottom right",
+                annotation=dict(bgcolor="#FEF2F2", bordercolor="#FECACA", borderwidth=1, font=dict(color="#B91C1C", size=10, weight=600)),
+            )
+            fig_seq_traj.update_layout(
+                xaxis=dict(title=dict(text="Evaluated Sample Size (Users)", standoff=12), automargin=True),
+                yaxis=dict(title=dict(text="Absolute Lift (percentage points)", standoff=12), automargin=True),
+            )
+            st.plotly_chart(format_chart(fig_seq_traj, height=270), use_container_width=True)
+
+    # 4. Statistical Diagnostics & Audit Table
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Statistical Diagnostics & Methodological Audit Table</div>
+            <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 12px;">Detailed audit parameters across Frequentist, Sequential, and Bayesian decision frameworks.</div>
+            """,
+            unsafe_allow_html=True,
+        )
+        p_pool = (exp["conversions_a"] + exp["conversions_b"]) / max(1, exp["sample_size_a"] + exp["sample_size_b"])
+        se_pool = np.sqrt(p_pool * (1.0 - p_pool) * (1.0 / max(1, exp["sample_size_a"]) + 1.0 / max(1, exp["sample_size_b"])))
+
+        audit_data = {
+            "Statistical Metric": [
+                "Evaluated Sample Size (N)",
+                "Observed Conversions (C)",
+                "Empirical Conversion Rate (CVR)",
+                "Absolute Effect Size (ATE)",
+                "Relative Lift (%)",
+                "Pooled Standard Error (SE)",
+                "Test Statistic (Z-Score)",
+                "Two-Tailed P-Value",
+                "95% Fixed Wald CI (1 Look)",
+                "95% Anytime Confidence Sequence",
+                "Bayesian P(Treatment > Control)",
+                "Bayesian Expected Loss (Risk)",
+                "Required Sample Size per Arm (n*)",
+                "Design Significance Level (α)",
+                "Design Statistical Power (1 - β)",
+            ],
+            "Control (A)": [
+                f"{exp['sample_size_a']:,}",
+                f"{exp['conversions_a']:,}",
+                f"{exp['conversion_rate_a']:.2%}",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                "—",
+                f"{analysis.required_sample_size:,}" if analysis.required_sample_size > 0 else "N/A",
+                f"{alpha:.3f}",
+                f"{(1.0 - beta)*100:.0f}%",
+            ],
+            "Treatment (B)": [
+                f"{exp['sample_size_b']:,}",
+                f"{exp['conversions_b']:,}",
+                f"{exp['conversion_rate_b']:.2%}",
+                f"{freq['absolute_lift']*100:+.2f} pp",
+                f"{freq['relative_lift']:+.2%}",
+                f"{se_pool:.5f}",
+                f"z = {freq['z_statistic']:.3f}",
+                f"p = {freq['p_value']:.4e}",
+                f"[{freq['ci_lower']*100:+.2f}%, {freq['ci_upper']*100:+.2f}%]",
+                f"[{seq['ci_lower']*100:+.2f}%, {seq['ci_upper']*100:+.2f}%]",
+                f"{bayes['probability_b_better']:.2%}",
+                f"{bayes['expected_loss_choose_b']:.5f} pp",
+                f"{analysis.required_sample_size:,}" if analysis.required_sample_size > 0 else "N/A",
+                f"{alpha:.3f}",
+                f"{(1.0 - beta)*100:.0f}%",
+            ],
+            "Methodological Engine": [
+                "Empirical Observations",
+                "Bernoulli Success Count",
+                "Maximum Likelihood Estimator",
+                "Point Difference (p̂_B - p̂_A)",
+                "Relative Uplift Rate",
+                "Pooled Variance Normal Approximation",
+                "Two-Proportion Z-Test",
+                "Standard Normal Cumulative Tail",
+                "Fixed Horizon (Invalid under peeking)",
+                "Waudby-Smith & Ramdas (2023) Time-Uniform",
+                "Beta-Binomial Conjugate Posterior",
+                "Bayesian Decision Theory (Stucchio 2015)",
+                "Lehr (1992) Power Sizing Formula",
+                "Type I Error Budget",
+                "Type II Error Complement",
+            ]
+        }
+        df_audit = pd.DataFrame(audit_data)
+        st.dataframe(df_audit, hide_index=True, use_container_width=True)
+
+    # 5. Statistical Power & MDE Sensitivity Sizing Curve
+    with st.container(border=True):
+        st.markdown(
+            """
+            <div style="font-size: 0.98rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Statistical Power & Minimum Detectable Effect (MDE) Sizing Curve</div>
+            <div style="font-size: 0.82rem; color: #64748B; margin-bottom: 8px;">Required sample size per variation across detectable effect sizes (MDE). Smaller effects require exponentially larger audiences.</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.78rem; font-weight: 600; color: #475569; padding: 6px 12px; background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; margin-bottom: 8px;">
+                <span><span style="color: #2563EB; font-weight: 900; font-size: 1.1rem; line-height: 0;">━</span> Required Sample Size Curve (n*)</span>
+                <span><span style="color: #0F172A; font-weight: 900;">◆</span> Current Planned MDE</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        base_rate = max(0.005, exp["conversion_rate_a"])
+        mde_grid = np.linspace(0.02, 0.25, 30)
+        req_grid = [
+            StatsEngine.required_sample_size_per_variation(
+                baseline_conversion_rate=base_rate,
+                minimum_detectable_effect=float(m),
+                alpha=alpha,
+                beta=beta,
+            )
+            for m in mde_grid
+        ]
+        curr_mde = abs(float(expected_lift)) / 100.0 if expected_lift is not None and abs(expected_lift) > 0.01 else 0.12
+        curr_req = StatsEngine.required_sample_size_per_variation(
+            baseline_conversion_rate=base_rate,
+            minimum_detectable_effect=curr_mde,
+            alpha=alpha,
+            beta=beta,
+        )
+
+        fig_pwr = go.Figure()
+        fig_pwr.add_trace(go.Scatter(
+            x=mde_grid * 100.0,
+            y=req_grid,
+            mode="lines",
+            line=dict(color="#2563EB", width=2.5),
+            name="Required Sample Size",
+            showlegend=False,
+        ))
+        fig_pwr.add_trace(go.Scatter(
+            x=[curr_mde * 100.0],
+            y=[curr_req],
+            mode="markers",
+            marker=dict(size=12, color="#0F172A", symbol="diamond"),
+            name="Current Plan",
+            showlegend=False,
+        ))
+        fig_pwr.update_layout(
+            xaxis=dict(title=dict(text="Minimum Detectable Effect (Relative Lift %)", standoff=12), automargin=True),
+            yaxis=dict(title=dict(text="Required Sample Size per Variation", standoff=12), automargin=True),
+        )
+        st.plotly_chart(format_chart(fig_pwr, height=270), use_container_width=True)
+
 # -----------------------------------------------------------------------------
 # TAB 2: Financial Impact & Winner's Curse Studio
 # -----------------------------------------------------------------------------
@@ -900,7 +1187,7 @@ with tab2:
     st.markdown(
         """
         <div class="callout-box">
-            <div class="callout-title">⚠️ What is the Winner's Curse in A/B Testing?</div>
+            <div class="callout-title">Decision Risk: The Winner's Curse in Experiment Selection</div>
             <p class="callout-text">
                 When an experiment is selected for roll-out <strong>because</strong> it achieved statistical significance (p &lt; 0.05), 
                 the observed point-estimate lift is <strong>systematically biased upwards</strong>. Favorable random variation helped it cross the bar. 
@@ -1159,7 +1446,7 @@ with tab4:
     with st.container(border=True):
         st.markdown(
             """
-            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">⚡ CUPED Studio: Variance Reduction via Pre-Experiment Covariates</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">CUPED Studio: Variance Reduction via Pre-Experiment Covariates</div>
             <div style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">
                 CUPED (Deng et al., 2013) utilizes historical pre-experiment data (e.g. past user spend or baseline activity) 
                 to strip away pre-existing variation: <strong>Y<sub>adj</sub> = Y - θ(X - E[X])</strong>. 
@@ -1167,6 +1454,13 @@ with tab4:
             </div>
             """,
             unsafe_allow_html=True,
+        )
+
+        df_loaded = st.session_state.get("raw_df")
+        has_csv_cov = (
+            df_loaded is not None 
+            and any(c.lower() in ["pre_spend", "pre_metric", "covariate"] for c in df_loaded.columns)
+            and any(c.lower() in ["variant", "group", "arm", "treatment"] for c in df_loaded.columns)
         )
 
         col_cuped_ctrl1, col_cuped_ctrl2 = st.columns([3, 2])
@@ -1187,16 +1481,30 @@ with tab4:
                 cuped_rho = st.number_input("Custom Correlation (ρ)", 0.00, 0.95, 0.60, 0.05, format="%.2f")
         with col_cuped_ctrl2:
             st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
-            st.caption(f"Theoretical Sample Size Savings: **{cuped_rho**2 * 100:.1f}%** (Noise reduction: 1 - ρ²)")
+            if has_csv_cov:
+                st.caption("Active Mode: Utilizing uploaded dataset pre-experiment spend column.")
+            else:
+                st.caption(f"Theoretical Sample Size Savings: **{cuped_rho**2 * 100:.1f}%** (Noise reduction: 1 - ρ²)")
 
-        cuped_result, _ = get_cached_cuped(
-            n_c=5000,
-            n_t=5000,
-            base_cvr=exp["conversion_rate_a"],
-            lift=freq["absolute_lift"],
-            corr=cuped_rho,
-            alpha_val=alpha,
-        )
+        if has_csv_cov:
+            v_col = [c for c in df_loaded.columns if c.lower() in ["variant", "group", "arm", "treatment"]][0]
+            x_col = [c for c in df_loaded.columns if c.lower() in ["pre_spend", "pre_metric", "covariate"]][0]
+            y_col = [c for c in df_loaded.columns if c.lower() in ["converted", "conversion", "is_converted", "y", "target"]][0]
+            groups = list(df_loaded[v_col].unique())
+            y_c = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[0]][y_col], errors="coerce").fillna(0).values
+            y_t = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[1]][y_col], errors="coerce").fillna(0).values
+            x_c = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[0]][x_col], errors="coerce").fillna(0).values
+            x_t = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[1]][x_col], errors="coerce").fillna(0).values
+            cuped_result = CUPEDEngine.compute(y_c, y_t, x_c, x_t, alpha=alpha)
+        else:
+            cuped_result, _ = get_cached_cuped(
+                n_c=5000,
+                n_t=5000,
+                base_cvr=exp["conversion_rate_a"],
+                lift=freq["absolute_lift"],
+                corr=cuped_rho,
+                alpha_val=alpha,
+            )
 
         col_cp1, col_cp2, col_cp3, col_cp4 = st.columns(4)
         with col_cp1:
@@ -1280,7 +1588,7 @@ with tab4:
     with st.container(border=True):
         st.markdown(
             """
-            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">📐 Clustered Ratio Metrics & The Delta Method</div>
+            <div style="font-size: 1.05rem; font-weight: 700; color: #0F172A; margin-bottom: 2px;">Delta Method: Clustered Ratio Metrics</div>
             <div style="font-size: 0.85rem; color: #475569; margin-bottom: 12px;">
                 Online experiments frequently evaluate ratio metrics (e.g. CTR = Total Clicks / Total Sessions). 
                 Because the unit of randomization is the user but metrics occur across multiple sessions per user, observations are clustered. 
@@ -1289,6 +1597,13 @@ with tab4:
             </div>
             """,
             unsafe_allow_html=True,
+        )
+
+        has_csv_cluster = (
+            df_loaded is not None
+            and any(c.lower() in ["sessions", "visits"] for c in df_loaded.columns)
+            and any(c.lower() in ["clicks", "events"] for c in df_loaded.columns)
+            and any(c.lower() in ["variant", "group", "arm", "treatment"] for c in df_loaded.columns)
         )
 
         col_delta_ctrl1, col_delta_ctrl2 = st.columns([3, 2])
@@ -1309,16 +1624,40 @@ with tab4:
                 mean_sessions = st.number_input("Custom Mean Sessions", 1.0, 20.0, 5.0, 0.5, format="%.1f")
         with col_delta_ctrl2:
             st.markdown("<div style='height: 25px;'></div>", unsafe_allow_html=True)
-            st.caption("Unit of Randomization: User | Metric Unit: Session")
+            if has_csv_cluster:
+                st.caption("Active Mode: Utilizing uploaded dataset user session clusters.")
+            else:
+                st.caption("Unit of Randomization: User | Metric Unit: Session")
 
-        delta_res, delta_comp = get_cached_delta_method(
-            n_users_c=1000,
-            n_users_t=1000,
-            base_ctr=0.08,
-            lift=0.015,
-            mean_sessions=mean_sessions,
-            alpha_val=alpha,
-        )
+        if has_csv_cluster:
+            v_col = [c for c in df_loaded.columns if c.lower() in ["variant", "group", "arm", "treatment"]][0]
+            s_col = [c for c in df_loaded.columns if c.lower() in ["sessions", "visits"]][0]
+            c_col = [c for c in df_loaded.columns if c.lower() in ["clicks", "events"]][0]
+            groups = list(df_loaded[v_col].unique())
+            c_c = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[0]][c_col], errors="coerce").fillna(0).values
+            n_c = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[0]][s_col], errors="coerce").fillna(1).values
+            c_t = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[1]][c_col], errors="coerce").fillna(0).values
+            n_t = pd.to_numeric(df_loaded[df_loaded[v_col] == groups[1]][s_col], errors="coerce").fillna(1).values
+            delta_res = DeltaMethodEngine.compute(c_c, n_c, c_t, n_t, alpha=alpha)
+            sum_c_c, sum_n_c = float(np.sum(c_c)), float(np.sum(n_c))
+            sum_c_t, sum_n_t = float(np.sum(c_t)), float(np.sum(n_t))
+            p_c = sum_c_c / sum_n_c if sum_n_c > 0 else 0.0
+            p_t = sum_c_t / sum_n_t if sum_n_t > 0 else 0.0
+            naive_se = np.sqrt(p_c * (1.0 - p_c) / sum_n_c + p_t * (1.0 - p_t) / sum_n_t)
+            delta_comp = {
+                "naive_se": float(naive_se),
+                "robust_se": float(delta_res.se_difference),
+                "variance_inflation_factor": float(delta_res.se_difference / naive_se) if naive_se > 0 else 1.0,
+            }
+        else:
+            delta_res, delta_comp = get_cached_delta_method(
+                n_users_c=1000,
+                n_users_t=1000,
+                base_ctr=0.08,
+                lift=0.015,
+                mean_sessions=mean_sessions,
+                alpha_val=alpha,
+            )
 
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
@@ -1335,7 +1674,7 @@ with tab4:
             """
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                 <div>
-                    <div style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">🏛️ Complete Mathematical Compendium & Asymptotic Guarantees</div>
+                    <div style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">Complete Mathematical Compendium & Asymptotic Guarantees</div>
                     <div style="font-size: 0.85rem; color: #475569; margin-top: 2px;">
                         Rigorous formulations, parameter dictionaries, and theoretical proofs across all 7 causal inference and optimization engines in OptiSim.
                     </div>
@@ -1346,13 +1685,13 @@ with tab4:
         )
 
         MATH_TOPICS = [
-            "1. 🛡️ Sequential CS",
-            "2. ⚡ CUPED Variance",
-            "3. 📐 Clustered Delta",
-            "4. 🧠 Bayesian Loss",
-            "5. 🤖 LinUCB Bandits",
-            "6. 📊 Frequentist & Power",
-            "7. 💰 Financial ROI",
+            "1. Sequential Confidence Sequences",
+            "2. CUPED Variance Reduction",
+            "3. Clustered Delta Method",
+            "4. Bayesian Decision Theory",
+            "5. Contextual LinUCB Bandits",
+            "6. Frequentist Hypothesis & Power",
+            "7. Commercial Value & ROI",
         ]
 
         if "math_topic" not in st.session_state or st.session_state["math_topic"] not in MATH_TOPICS:
@@ -1370,13 +1709,13 @@ with tab4:
             """
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">🏛️ Complete Mathematical Compendium</span>
+                    <span style="font-size: 1.15rem; font-weight: 700; color: #0F172A;">Complete Mathematical Compendium</span>
                     <span style="background: #2563EB; color: #FFFFFF; font-size: 0.76rem; font-weight: 700; padding: 2px 10px; border-radius: 9999px;">
                         7 Core Modules (1 to 7)
                     </span>
                 </div>
                 <div style="font-size: 0.82rem; color: #64748B;">
-                    Click any pill below or use ⬅️ / ➡️ to explore all 7 mathematical engines
+                    Select any module below or use Previous / Next to inspect formulations
                 </div>
             </div>
             """,
@@ -1401,14 +1740,14 @@ with tab4:
         col_nav_l, col_nav_c, col_nav_r = st.columns([1, 2, 1])
         with col_nav_l:
             prev_num = (curr_idx - 1) % len(MATH_TOPICS) + 1
-            st.button(f"⬅️ Prev ({prev_num}/7)", on_click=go_prev_topic, key="btn_prev_math", width="stretch")
+            st.button(f"Previous ({prev_num}/7)", on_click=go_prev_topic, key="btn_prev_math", width="stretch")
         with col_nav_c:
             st.markdown(
                 f"""
                 <div style="text-align: center; padding: 2px 0;">
                     <div style="margin-bottom: 3px;">{dots_html}</div>
                     <div style="font-size: 0.82rem; font-weight: 600; color: #475569;">
-                        Module <strong>{curr_idx + 1} of 7</strong>: <span style="color: #0F172A; font-weight: 700;">{MATH_TOPICS[curr_idx].split(' ', 1)[1]}</span>
+                        Module <strong>{curr_idx + 1} of 7</strong>: <span style="color: #0F172A; font-weight: 700;">{MATH_TOPICS[curr_idx].split('. ', 1)[1]}</span>
                     </div>
                 </div>
                 """,
@@ -1416,7 +1755,7 @@ with tab4:
             )
         with col_nav_r:
             next_num = (curr_idx + 1) % len(MATH_TOPICS) + 1
-            st.button(f"Next ({next_num}/7) ➡️", on_click=go_next_topic, key="btn_next_math", width="stretch")
+            st.button(f"Next ({next_num}/7)", on_click=go_next_topic, key="btn_next_math", width="stretch")
 
         st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
 
@@ -1454,7 +1793,7 @@ with tab4:
                 | $\alpha$ | Family-Wise Error Rate | Type I error probability guaranteed across continuous monitoring (e.g. $\alpha = 0.05$). |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         In standard fixed-horizon A/B testing, checking the dashboard daily ("peeking") inflates false positive discovery rates from 5% to over 30%. Non-negative supermartingales guarantee that practitioners can monitor dashboards continuously and stop as soon as 0 ∉ CSₙ without invalidating statistical error guarantees.
                     </div>
@@ -1498,7 +1837,7 @@ with tab4:
                 | $Y_{\text{adj}}$ | De-Noised Estimator | Adjusted metric with identical expectation ($\mathbb{E}[Y_{\text{adj}}] = \mathbb{E}[Y]$) but lower variance. |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         Natural user variance (e.g. whale spenders vs casual users) creates massive random noise. CUPED partials out baseline pre-experiment variance. At ρ = 0.60, required sample size drops by 36%—allowing teams to ship decisions in 9 days instead of 14 days with zero risk of bias.
                     </div>
@@ -1547,7 +1886,7 @@ with tab4:
                 | $\text{VIF}$ | Variance Inflation | Degree to which naive standard errors underestimate true sampling variability. |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         Randomizing at the user level while measuring at the session level creates intra-user correlation. Naive pooled t-tests assume every session is an independent user, underestimating error bars by up to 3x and flooding platforms with false positive winner claims. The Delta Method produces honest, cluster-robust confidence intervals.
                     </div>
@@ -1593,7 +1932,7 @@ with tab4:
                 | $\varepsilon$ | Risk Tolerance | Maximum permissible conversion point downside threshold before taking action. |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         P-values fail to answer the primary commercial question: "What is the expected dollar loss if this release is a mistake?" Bayesian Expected Loss quantifies exact downside risk in conversion points, allowing automated ship/no-ship thresholds.
                     </div>
@@ -1643,7 +1982,7 @@ with tab4:
                 | $\text{Regret}(T)$ | Cumulative Regret | Total loss in conversions compared to an oracle always choosing the optimal arm. |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         Traditional 50/50 A/B testing wastes 50% of traffic on inferior variants during weeks of experimentation. LinUCB shifts traffic in real time toward the winning experience while personalizing based on user context attributes.
                     </div>
@@ -1687,7 +2026,7 @@ with tab4:
                 | $n^*$ | Required Sample per Arm | Minimum sample threshold required before evaluating the fixed-horizon Z-statistic. |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         Fixed-horizon tests represent a binding contract: evaluate only after collecting n* observations per arm. Stopping early invalidates the Type I error guarantee.
                     </div>
@@ -1730,7 +2069,7 @@ with tab4:
                 | $T_{\text{breakeven}}$ | Breakeven Horizon | Payback period in days to recoup setup investment. |
 
                 <div style="background-color: #EFF6FF; border: 1px solid #BFDBFE; border-left: 4px solid #2563EB; border-radius: 6px; padding: 12px 16px; margin-top: 14px; margin-bottom: 6px;">
-                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">💡 Executive Takeaway & Business Intuition</div>
+                    <div style="font-weight: 700; font-size: 0.88rem; color: #1E3A8A; margin-bottom: 4px;">Executive Decision Takeaway</div>
                     <div style="font-size: 0.84rem; color: #1E40AF; line-height: 1.5;">
                         Statistical significance is a necessary condition, not a sufficient one. An experiment showing statistically significant lift that requires 5 years to recover engineering costs is commercially negative-ROI and should not be rolled out.
                     </div>

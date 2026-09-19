@@ -375,12 +375,58 @@ class ExperimentDashboardService:
                 sub_b = experiment.group_b[:idx]
                 cum_cvr_a = float(np.sum(sub_a)) / idx if idx > 0 else 0.0
                 cum_cvr_b = float(np.sum(sub_b)) / idx if idx > 0 else 0.0
+                sub_a_conv = int(np.sum(sub_a))
+                sub_b_conv = int(np.sum(sub_b))
+                cs_step = SequentialTest.confidence_sequence(
+                    conversions_a=sub_a_conv,
+                    sample_size_a=idx,
+                    conversions_b=sub_b_conv,
+                    sample_size_b=idx,
+                    alpha=alpha,
+                    planned_sample_size=required_n if required_n > 0 else None,
+                )
                 chart_data["convergence"].append({
                     "sample_size": idx,
                     "cvr_a": cum_cvr_a,
-                    "cvr_b": cum_cvr_b
+                    "cvr_b": cum_cvr_b,
+                    "lift": cum_cvr_b - cum_cvr_a,
+                    "cs_lower": cs_step.ci_lower,
+                    "cs_upper": cs_step.ci_upper,
+                    "is_conclusive": cs_step.is_conclusive,
                 })
                 if idx == sample_size_a:
+                    break
+        elif mode == "real" and sample_size_a > 10 and sample_size_b > 10:
+            n_points = 30
+            step_a = max(1, sample_size_a // n_points)
+            step_b = max(1, sample_size_b // n_points)
+            cvr_a_final = conversions_a / sample_size_a
+            cvr_b_final = conversions_b / sample_size_b
+            for i in range(1, n_points + 1):
+                cur_na = min(sample_size_a, i * step_a)
+                cur_nb = min(sample_size_b, i * step_b)
+                if cur_na <= 0 or cur_nb <= 0:
+                    continue
+                cur_ca = int(round(cvr_a_final * cur_na))
+                cur_cb = int(round(cvr_b_final * cur_nb))
+                cs_step = SequentialTest.confidence_sequence(
+                    conversions_a=cur_ca,
+                    sample_size_a=cur_na,
+                    conversions_b=cur_cb,
+                    sample_size_b=cur_nb,
+                    alpha=alpha,
+                    planned_sample_size=required_n if required_n > 0 else None,
+                )
+                chart_data["convergence"].append({
+                    "sample_size": cur_na + cur_nb,
+                    "cvr_a": cur_ca / cur_na,
+                    "cvr_b": cur_cb / cur_nb,
+                    "lift": (cur_cb / cur_nb) - (cur_ca / cur_na),
+                    "cs_lower": cs_step.ci_lower,
+                    "cs_upper": cs_step.ci_upper,
+                    "is_conclusive": cs_step.is_conclusive,
+                })
+                if cur_na == sample_size_a:
                     break
 
             # 2. Bandit regret history (50 points)
