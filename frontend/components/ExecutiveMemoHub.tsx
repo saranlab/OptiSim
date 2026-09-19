@@ -229,7 +229,7 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
         </div>
       </div>
 
-      {/* VIEW 1: STRICT 1-PAGE A4 DOCUMENT SHEET (Publication Grade Overleaf Aesthetic) */}
+      {/* VIEW 1: STRICT 1-PAGE A4 DOCUMENT SHEET - Modern Minimal, Zero Borders */}
       <div className={viewMode === "document" ? "block" : "fixed -left-[9999px] top-0 pointer-events-none"}>
         <div
           id="memo-rendered-paper"
@@ -242,8 +242,8 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
             overflow: "hidden",
           }}
         >
-          {/* Top Letterhead */}
-          <div className="border-b-2 border-slate-900 pb-3 space-y-1.5">
+          {/* Top Letterhead - Zero Borders */}
+          <div className="pb-3 space-y-2">
             <div className="flex justify-between items-start">
               <div>
                 <div className="text-[9px] font-mono tracking-widest text-slate-500 uppercase font-semibold">
@@ -263,8 +263,8 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
               </div>
             </div>
 
-            {/* Executive 4-Metric Grid */}
-            <div className="border-t border-slate-300 pt-2 grid grid-cols-4 gap-2 text-xs font-mono">
+            {/* Executive 4-Metric Tonal Grid - Zero Borders */}
+            <div className="bg-slate-100/70 rounded-xl p-3 grid grid-cols-4 gap-2 text-xs font-mono">
               <div>
                 <span className="text-slate-500 text-[9px] uppercase block">Actionable Verdict</span>
                 <span className="text-xs font-bold text-slate-950">SHIP 100% TRAFFIC</span>
@@ -284,9 +284,9 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
             </div>
           </div>
 
-          {/* Section 1: Executive Summary & Evidence Table */}
+          {/* Section 1: Executive Summary & Evidence Table - Zero Borders */}
           <div className="space-y-1.5">
-            <div className="flex justify-between items-baseline border-b border-slate-200 pb-1">
+            <div className="flex justify-between items-baseline pb-0.5">
               <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide">
                 1. Executive Verdict &amp; Primary Causal Evidence
               </h2>
@@ -296,54 +296,49 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
               Across 24,000 total users, <strong>Variant B</strong> demonstrates a statistically verified conversion uplift of <strong>+1.43 percentage points</strong> (relative lift <strong>+13.72%</strong>). The 95% anytime confidence sequence strictly excludes the null hypothesis:
             </p>
 
-            {/* LaTeX Booktabs Table */}
-            <table className="w-full text-[11px] font-mono border-collapse">
-              <thead>
-                <tr className="border-t-2 border-b border-slate-900 text-slate-700">
-                  <th className="py-1 px-2 text-left font-semibold">Cohort / Metric</th>
-                  <th className="py-1 px-2 text-right font-semibold">Control (A)</th>
-                  <th className="py-1 px-2 text-right font-semibold">Treatment (B)</th>
-                  <th className="py-1 px-2 text-right font-semibold">Relative Uplift [95% CS]</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 text-slate-800">
-                <tr>
-                  <td className="py-1 px-2 text-left font-medium">Checkout Conversion Rate</td>
-                  <td className="py-1 px-2 text-right">10.42%</td>
-                  <td className="py-1 px-2 text-right font-semibold">11.85%</td>
-                  <td className="py-1 px-2 text-right font-bold text-slate-950">+13.72% [+0.71%, +2.15%]</td>
-                </tr>
-                <tr>
-                  <td className="py-1 px-2 text-left font-medium">Sample Size (Users)</td>
-                  <td className="py-1 px-2 text-right">12,000</td>
-                  <td className="py-1 px-2 text-right">12,000</td>
-                  <td className="py-1 px-2 text-right">24,000 Total Observations</td>
-                </tr>
-                <tr>
-                  <td className="py-1 px-2 text-left font-medium">Bayesian Posterior P(B &gt; A)</td>
-                  <td className="py-1 px-2 text-right">--</td>
-                  <td className="py-1 px-2 text-right">--</td>
-                  <td className="py-1 px-2 text-right font-semibold">99.2% (Expected Loss: 0.00012 pp)</td>
-                </tr>
-              </tbody>
-              <tfoot>
-                <tr className="border-b-2 border-slate-900">
-                  <td colSpan={4} className="py-0.5 text-[9px] text-slate-500 italic">
-                    Note: Confidence sequence bounds maintain uniform validity under continuous monitoring.
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+            {/* Clean Tonal Table - Zero Borders */}
+            <div className="bg-slate-100/40 rounded-xl overflow-hidden p-1">
+              <table className="w-full text-[11px] font-mono">
+                <thead>
+                  <tr className="text-slate-600 bg-slate-100/80">
+                    <th className="py-1.5 px-3 text-left font-semibold rounded-l-lg">Cohort / Metric</th>
+                    <th className="py-1.5 px-3 text-right font-semibold">Control (A)</th>
+                    <th className="py-1.5 px-3 text-right font-semibold">Treatment (B)</th>
+                    <th className="py-1.5 px-3 text-right font-semibold rounded-r-lg">Relative Uplift [95% CS]</th>
+                  </tr>
+                </thead>
+                <tbody className="text-slate-800">
+                  <tr className="hover:bg-white/60 transition-colors">
+                    <td className="py-1.5 px-3 text-left font-medium">Checkout Conversion Rate</td>
+                    <td className="py-1.5 px-3 text-right">10.42%</td>
+                    <td className="py-1.5 px-3 text-right font-semibold">11.85%</td>
+                    <td className="py-1.5 px-3 text-right font-bold text-slate-950">+13.72% [+0.71%, +2.15%]</td>
+                  </tr>
+                  <tr className="hover:bg-white/60 transition-colors">
+                    <td className="py-1.5 px-3 text-left font-medium">Sample Size (Users)</td>
+                    <td className="py-1.5 px-3 text-right">12,000</td>
+                    <td className="py-1.5 px-3 text-right">12,000</td>
+                    <td className="py-1.5 px-3 text-right">24,000 Total Observations</td>
+                  </tr>
+                  <tr className="hover:bg-white/60 transition-colors">
+                    <td className="py-1.5 px-3 text-left font-medium">Bayesian Posterior P(B &gt; A)</td>
+                    <td className="py-1.5 px-3 text-right">--</td>
+                    <td className="py-1.5 px-3 text-right">--</td>
+                    <td className="py-1.5 px-3 text-right font-semibold">99.2% (Expected Loss: 0.00012 pp)</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* Section 2: Mathematical Rigor & Variance Reduction (2 Balanced Columns) */}
+          {/* Section 2: Mathematical Rigor & Variance Reduction - Zero Borders */}
           <div className="space-y-1.5">
-            <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
+            <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide">
               2. Statistical Rigor &amp; Variance Reduction
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
               {/* Column A: Anytime Sequence */}
-              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+              <div className="bg-slate-100/70 p-3 rounded-xl space-y-1">
                 <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
                   Anytime Confidence Sequences (Waudby-Smith &amp; Ramdas, 2021)
                 </div>
@@ -357,7 +352,7 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
               </div>
 
               {/* Column B: CUPED Variance Reduction */}
-              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+              <div className="bg-slate-100/70 p-3 rounded-xl space-y-1">
                 <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
                   CUPED Variance Reduction (Deng et al., 2013)
                 </div>
@@ -372,14 +367,14 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
             </div>
           </div>
 
-          {/* Section 3: Operational Guardrails & Capital Optimization (2 Balanced Columns) */}
+          {/* Section 3: Operational Guardrails & Capital Optimization - Zero Borders */}
           <div className="space-y-1.5">
-            <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide border-b border-slate-200 pb-1">
+            <h2 className="text-xs font-bold text-slate-950 font-sans uppercase tracking-wide">
               3. Operational Guardrails &amp; Capital Optimization
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px]">
               {/* Column A: Benjamini-Hochberg FDR */}
-              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+              <div className="bg-slate-100/70 p-3 rounded-xl space-y-1">
                 <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
                   Benjamini-Hochberg Multi-Metric FDR Control
                 </div>
@@ -393,7 +388,7 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
               </div>
 
               {/* Column B: 0-1 Knapsack MILP */}
-              <div className="bg-slate-50 p-2.5 rounded-sm border border-slate-200 space-y-1">
+              <div className="bg-slate-100/70 p-3 rounded-xl space-y-1">
                 <div className="font-semibold text-slate-900 font-sans text-[10px] uppercase">
                   HiGHS 1.8 Mixed-Integer Linear Program (MILP)
                 </div>
@@ -408,8 +403,8 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
             </div>
           </div>
 
-          {/* Bottom Sign-off Block */}
-          <div className="pt-3 border-t-2 border-slate-900 grid grid-cols-3 gap-4 font-mono text-[10px] text-slate-600">
+          {/* Bottom Sign-off Block - Zero Borders, Clean Tonal Background */}
+          <div className="bg-slate-100/70 rounded-xl p-3 grid grid-cols-3 gap-4 font-mono text-[10px] text-slate-600">
             <div>
               <div className="text-[8px] text-slate-400 uppercase font-semibold">Causal Inference Lead</div>
               <div className="font-bold text-slate-900 font-sans text-xs">Dr. Data Science, Ph.D.</div>
