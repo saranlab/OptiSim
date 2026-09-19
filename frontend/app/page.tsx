@@ -35,7 +35,7 @@ import {
 } from "../lib/types";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<string>("overview");
+  const [activeTab, setActiveTab] = useState<string>("causal_risk");
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
   const [isComputing, setIsComputing] = useState<boolean>(false);
@@ -281,8 +281,8 @@ export default function Home() {
           defensibleNet={defensibleNet}
         />
 
-        {/* Tab 1: Executive Overview */}
-        {activeTab === "overview" && (
+        {/* Workspace 1: Causal Evidence & Risk */}
+        {activeTab === "causal_risk" && (
           <div className="space-y-8">
             <TabInference
               sequentialData={sequentialData}
@@ -291,6 +291,17 @@ export default function Home() {
               controlCvr={controlCvr}
               treatmentCvr={treatmentCvr}
             />
+            <TabSubgroupsGuardrails
+              hteData={hteData}
+              guardrailsData={guardrailsData}
+              onRefreshGuardrails={handleRefreshGuardrails}
+            />
+          </div>
+        )}
+
+        {/* Workspace 2: Capital & Routing Lab */}
+        {activeTab === "allocation" && (
+          <div className="space-y-8">
             <TabFinancials
               annualTraffic={annualTraffic}
               revPerConv={revPerConv}
@@ -298,38 +309,21 @@ export default function Home() {
               observedLiftPct={expectedLift}
               ciLowerPct={ciLower * 100}
             />
+            <TabORKnapsack
+              portfolioData={portfolioData}
+              candidates={candidates}
+              onReoptimize={handleReoptimize}
+            />
+            <TabBandits
+              thompsonData={thompsonData}
+              linucbData={linucbData}
+              onSimulateThompson={handleSimulateThompson}
+              onSimulateLinUCB={handleSimulateLinUCB}
+            />
           </div>
         )}
 
-        {/* Tab 2: Subgroups & Guardrails */}
-        {activeTab === "hte_guardrails" && (
-          <TabSubgroupsGuardrails
-            hteData={hteData}
-            guardrailsData={guardrailsData}
-            onRefreshGuardrails={handleRefreshGuardrails}
-          />
-        )}
-
-        {/* Tab 3: Operations Research 0-1 Knapsack Lab */}
-        {activeTab === "or_knapsack" && (
-          <TabORKnapsack
-            portfolioData={portfolioData}
-            candidates={candidates}
-            onReoptimize={handleReoptimize}
-          />
-        )}
-
-        {/* Tab 4: Adaptive Personalization & Bandits */}
-        {activeTab === "bandits" && (
-          <TabBandits
-            thompsonData={thompsonData}
-            linucbData={linucbData}
-            onSimulateThompson={handleSimulateThompson}
-            onSimulateLinUCB={handleSimulateLinUCB}
-          />
-        )}
-
-        {/* Tab 5: Executive Board Memo */}
+        {/* Workspace 3: Decision Memo */}
         {activeTab === "memo" && (
           <ExecutiveMemoHub
             memoData={memoData}

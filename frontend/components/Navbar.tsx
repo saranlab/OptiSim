@@ -5,8 +5,6 @@ import {
   Activity,
   Cpu,
   FileText,
-  Sliders,
-  ShieldCheck,
   Download,
   Settings2,
 } from "lucide-react";
@@ -31,10 +29,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onExportPDF,
 }) => {
   const tabs = [
-    { id: "overview", label: "Executive Overview", icon: Activity },
-    { id: "hte_guardrails", label: "Subgroups & Guardrails", icon: ShieldCheck },
-    { id: "or_knapsack", label: "0-1 Knapsack Lab", icon: Cpu },
-    { id: "bandits", label: "Adaptive Routing", icon: Sliders },
+    { id: "causal_risk", label: "Causal Evidence & Risk", icon: Activity },
+    { id: "allocation", label: "Capital & Routing Lab", icon: Cpu },
     { id: "memo", label: "Decision Memo", icon: FileText },
   ];
 

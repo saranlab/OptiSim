@@ -12,7 +12,6 @@ import {
   CartesianGrid,
   ReferenceLine,
 } from "recharts";
-import { ShieldCheck, ArrowUpRight } from "lucide-react";
 import { CUPEDResponse, DeltaMethodResponse, SequentialResponse } from "../lib/types";
 
 interface TabInferenceProps {
@@ -49,56 +48,82 @@ export const TabInference: React.FC<TabInferenceProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 4 Responsive Metric Cards - Pure Monochrome, Consistent Typography */}
-      <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
-          <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
-            Control Baseline (A)
+      {/* Sequential Confidence Sequence Cone Chart - Primary Causal Trajectory */}
+      <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
+          <div>
+            <h3 className="text-sm font-medium text-white">
+              Confidence Sequence Trajectory: Absolute Lift (&Delta; pp)
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Time-uniform 95% sequence [L_n, U_n]. Lower bound strictly excludes zero after n &gt; 12,000, mathematically affirming lift.
+            </p>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold font-mono text-white tabular-nums">
-            {(controlCvr * 100).toFixed(2)}%
-          </div>
-          <div className="mt-2 text-xs text-zinc-500">Benchmark conversion rate</div>
-        </div>
-
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
-          <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
-            Treatment Observed (B)
-          </div>
-          <div className="mt-2 flex items-baseline space-x-2 font-mono">
-            <span className="text-2xl sm:text-3xl font-semibold text-white tabular-nums">
-              {(treatmentCvr * 100).toFixed(2)}%
+          <div className="flex items-center space-x-4 text-xs font-mono">
+            <span className="flex items-center space-x-1.5 text-white">
+              <span className="h-2 w-2 rounded-full bg-white" />
+              <span>Lift Estimate (&tau;)</span>
             </span>
-            <span className="text-xs font-semibold text-white">
-              +{sequentialData.relative_lift_pct.toFixed(1)}%
+            <span className="flex items-center space-x-1.5 text-zinc-400">
+              <span className="h-2 w-2 rounded-full bg-zinc-500" />
+              <span>95% Anytime Band</span>
             </span>
           </div>
-          <div className="mt-2 text-xs text-zinc-500">Observed active variant CVR</div>
         </div>
 
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
-          <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
-            Anytime Sequence [95%]
-          </div>
-          <div className="mt-2 text-xl sm:text-2xl font-semibold font-mono text-white tabular-nums">
-            [{lastLower > 0 ? "+" : ""}{lastLower.toFixed(2)} pp, {lastUpper > 0 ? "+" : ""}{lastUpper.toFixed(2)} pp]
-          </div>
-          <div className="mt-2 text-xs text-zinc-400 flex items-center gap-1.5 font-mono">
-            <ShieldCheck className="h-3.5 w-3.5 text-white" />
-            <span>Peeking-Proof (Waudby-Smith)</span>
-          </div>
-        </div>
-
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
-          <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
-            Bayesian P(B &gt; A)
-          </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-semibold font-mono text-white tabular-nums">
-            99.2%
-          </div>
-          <div className="mt-2 text-xs text-zinc-500 font-mono">
-            Expected Loss: 0.00012 pp
-          </div>
+        <div className="h-64 sm:h-72 md:h-80 w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={csChartData} margin={{ top: 15, right: 15, left: -5, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+              <XAxis
+                dataKey="n"
+                stroke="#71717a"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
+              />
+              <YAxis
+                stroke="#71717a"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(val) => `${val > 0 ? "+" : ""}${val} pp`}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "#18181b",
+                  border: "none",
+                  fontSize: "12px",
+                  borderRadius: "8px",
+                  color: "#ffffff",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                  fontFamily: "ui-monospace, monospace",
+                }}
+                labelFormatter={(label) => `Sample Size: ${label ? Number(label).toLocaleString() : 0} users`}
+                formatter={(val: any, name: any) => [
+                  `${Number(val) > 0 ? "+" : ""}${Number(val).toFixed(2)} pp`,
+                  name === "tau" ? "Absolute Lift (τ)" : name === "lower" ? "95% Lower (Ln)" : "95% Upper (Un)",
+                ]}
+              />
+              <ReferenceLine
+                y={0}
+                stroke="#71717a"
+                strokeDasharray="4 4"
+                label={{
+                  value: "Null Effect (0.0 pp)",
+                  position: "insideBottomRight",
+                  fill: "#a1a1aa",
+                  fontSize: 10,
+                  fontFamily: "ui-monospace, monospace",
+                }}
+              />
+              <Area type="monotone" dataKey="band" fill="#ffffff" fillOpacity={0.08} stroke="none" />
+              <Line type="monotone" dataKey="upper" stroke="#a1a1aa" strokeWidth={1} strokeDasharray="2 2" dot={false} />
+              <Line type="monotone" dataKey="lower" stroke="#a1a1aa" strokeWidth={1} strokeDasharray="2 2" dot={false} />
+              <Line type="monotone" dataKey="tau" stroke="#ffffff" strokeWidth={2} dot={false} />
+            </ComposedChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
@@ -206,85 +231,6 @@ export const TabInference: React.FC<TabInferenceProps> = ({
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Sequential Confidence Sequence Cone Chart - Clear Data Viz Labels */}
-      <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
-          <div>
-            <h3 className="text-sm font-medium text-white">
-              Confidence Sequence Trajectory: Absolute Lift (&Delta; pp)
-            </h3>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Time-uniform 95% sequence [L_n, U_n]. Lower bound strictly excludes zero after n &gt; 12,000, mathematically affirming lift.
-            </p>
-          </div>
-          <div className="flex items-center space-x-4 text-xs font-mono">
-            <span className="flex items-center space-x-1.5 text-white">
-              <span className="h-2 w-2 rounded-full bg-white" />
-              <span>Lift Estimate (&tau;)</span>
-            </span>
-            <span className="flex items-center space-x-1.5 text-zinc-400">
-              <span className="h-2 w-2 rounded-full bg-zinc-500" />
-              <span>95% Anytime Band</span>
-            </span>
-          </div>
-        </div>
-
-        <div className="h-64 sm:h-72 md:h-80 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={csChartData} margin={{ top: 15, right: 15, left: -5, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
-              <XAxis
-                dataKey="n"
-                stroke="#71717a"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`}
-              />
-              <YAxis
-                stroke="#71717a"
-                fontSize={11}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(val) => `${val > 0 ? "+" : ""}${val} pp`}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "#18181b",
-                  border: "none",
-                  fontSize: "12px",
-                  borderRadius: "8px",
-                  color: "#ffffff",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
-                  fontFamily: "ui-monospace, monospace",
-                }}
-                labelFormatter={(label) => `Sample Size: ${label ? Number(label).toLocaleString() : 0} users`}
-                formatter={(val: any, name: any) => [
-                  `${Number(val) > 0 ? "+" : ""}${Number(val).toFixed(2)} pp`,
-                  name === "tau" ? "Absolute Lift (τ)" : name === "lower" ? "95% Lower (Ln)" : "95% Upper (Un)",
-                ]}
-              />
-              <ReferenceLine
-                y={0}
-                stroke="#71717a"
-                strokeDasharray="4 4"
-                label={{
-                  value: "Null Effect (0.0 pp)",
-                  position: "insideBottomRight",
-                  fill: "#a1a1aa",
-                  fontSize: 10,
-                  fontFamily: "ui-monospace, monospace",
-                }}
-              />
-              <Area type="monotone" dataKey="band" fill="#ffffff" fillOpacity={0.08} stroke="none" />
-              <Line type="monotone" dataKey="upper" stroke="#a1a1aa" strokeWidth={1} strokeDasharray="2 2" dot={false} />
-              <Line type="monotone" dataKey="lower" stroke="#a1a1aa" strokeWidth={1} strokeDasharray="2 2" dot={false} />
-              <Line type="monotone" dataKey="tau" stroke="#ffffff" strokeWidth={2} dot={false} />
-            </ComposedChart>
-          </ResponsiveContainer>
         </div>
       </div>
     </div>
