@@ -193,6 +193,9 @@ class CandidateFeature:
     effort_points: float  # Engineering effort (story points / person-weeks)
     risk_score: float = 0.0  # Operational risk factor in [0, 1]
     conflict_group: Optional[str] = None  # Mutual exclusion grouping (e.g. "checkout_flow")
+    defensible_floor_value: Optional[float] = None  # Conservative lower-bound value ($)
+    downstream_churn_risk: float = 0.0  # Retention risk factor in [0, 1]
+    is_mandatory: bool = False  # Mandatory feature deployment (e.g. compliance requirement)
 
 
 @dataclass(frozen=True)
@@ -211,4 +214,70 @@ class OptimizationResult:
     is_feasible: bool
     status_message: str
     efficient_frontier: List[Dict[str, float]]
+    is_robust: bool = False
+    churn_penalty_deducted: float = 0.0
+
+
+@dataclass(frozen=True)
+class SubgroupMetric:
+    """CATE estimation and inference for a specific user segment."""
+
+    segment_name: str
+    sample_size_a: int
+    conversions_a: int
+    cvr_a: float
+    sample_size_b: int
+    conversions_b: int
+    cvr_b: float
+    absolute_lift: float
+    relative_lift: float
+    se_difference: float
+    z_score: float
+    p_value: float
+    ci_lower: float
+    ci_upper: float
+    is_significant: bool
+    interaction_p_value: Optional[float] = None
+    interaction_significant: bool = False
+
+
+@dataclass(frozen=True)
+class HTEAnalysisResult:
+    """Heterogeneous Treatment Effect analysis across a segmentation dimension."""
+
+    dimension: str
+    overall_ate: float
+    subgroups: List[SubgroupMetric]
+    heterogeneity_p_value: float
+    has_heterogeneity: bool
+    top_performing_segment: str
+    worst_performing_segment: str
+
+
+@dataclass(frozen=True)
+class GuardrailMetric:
+    """Multi-metric guardrail tracking with FDR adjustment."""
+
+    metric_name: str
+    control_value: float
+    treatment_value: float
+    delta: float
+    relative_change: float
+    raw_p_value: float
+    adjusted_p_value: float  # Benjamini-Hochberg corrected
+    direction_favorable: str  # "lower" (e.g. latency, churn) or "higher" (e.g. rpm)
+    threshold_pct: float  # Max allowable degradation percentage
+    is_violated: bool
+    status: str  # "PASS", "WARN", "FAIL"
+
+
+@dataclass(frozen=True)
+class GuardrailAuditResult:
+    """Enterprise multi-metric guardrail audit with FDR control."""
+
+    metrics: List[GuardrailMetric]
+    fdr_alpha: float
+    has_critical_violations: bool
+    summary_verdict: str
+
 

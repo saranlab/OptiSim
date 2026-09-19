@@ -27,11 +27,16 @@ class PortfolioOptimizer:
         risk_aversion: float = 0.10,
         enforce_conflicts: bool = True,
         frontier_steps: int = 15,
+        robust_mode: bool = False,
+        churn_penalty_weight: float = 0.0,
     ) -> OptimizationResult:
         """
         Solve 0-1 Knapsack MILP to maximize risk-adjusted total incremental value.
 
-        maximize   sum_i (v_i - risk_aversion * r_i * v_i) * x_i
+        When robust_mode=True, features are evaluated at their conservative defensible
+        floor value (or 70% of expected value) to provide downside risk guarantees.
+
+        maximize   sum_i (v_i - risk_aversion * r_i * v_i - churn_penalty * churn_i * v_i) * x_i
         subject to sum_i c_i * x_i <= max_budget
                    sum_i l_i * x_i <= max_latency_ms
                    sum_i e_i * x_i <= max_effort_points
@@ -52,22 +57,40 @@ class PortfolioOptimizer:
                 is_feasible=True,
                 status_message="No features provided for optimization.",
                 efficient_frontier=[],
+                is_robust=robust_mode,
+                churn_penalty_deducted=0.0,
             )
 
         n = len(features)
-        v = np.array([float(f.expected_value) for f in features], dtype=float)
+        if robust_mode:
+            v = np.array([
+                float(f.defensible_floor_value)
+                if f.defensible_floor_value is not None
+                else max(0.0, float(f.expected_value) * 0.70)
+                for f in features
+            ], dtype=float)
+        else:
+            v = np.array([float(f.expected_value) for f in features], dtype=float)
+
         c = np.array([float(f.cost) for f in features], dtype=float)
         l = np.array([float(f.latency_ms) for f in features], dtype=float)
         e = np.array([float(f.effort_points) for f in features], dtype=float)
         r = np.array([float(np.clip(f.risk_score, 0.0, 1.0)) for f in features], dtype=float)
+        churn_r = np.array([float(np.clip(f.downstream_churn_risk, 0.0, 1.0)) for f in features], dtype=float)
 
         # Objective: scipy.optimize.milp minimizes c^T x, so negate for maximization
-        risk_adjusted_val = v - (float(risk_aversion) * r * v)
+        churn_penalty = float(churn_penalty_weight) * churn_r * v
+        risk_adjusted_val = v - (float(risk_aversion) * r * v) - churn_penalty
         c_obj = -risk_adjusted_val
 
         # 0-1 integrality and bounds
         integrality = np.ones(n, dtype=int)
-        bounds = Bounds(lb=np.zeros(n), ub=np.ones(n))
+        lb = np.zeros(n, dtype=float)
+        ub = np.ones(n, dtype=float)
+        for i, feat in enumerate(features):
+            if getattr(feat, "is_mandatory", False):
+                lb[i] = 1.0
+        bounds = Bounds(lb=lb, ub=ub)
 
         # Build Constraint Matrix
         constraint_rows = []
@@ -102,7 +125,7 @@ class PortfolioOptimizer:
 
         A_mat = np.array(constraint_rows, dtype=float)
         b_u = np.array(ub_list, dtype=float)
-        b_l = np.zeros(len(b_u), dtype=float)
+        b_l = -np.inf * np.ones(len(b_u), dtype=float)
 
         linear_constraints = LinearConstraint(A_mat, b_l, b_u)
 
@@ -128,16 +151,19 @@ class PortfolioOptimizer:
                 is_feasible=False,
                 status_message=f"Solver status: {res.status}. Infeasible under current resource constraints.",
                 efficient_frontier=[],
+                is_robust=robust_mode,
+                churn_penalty_deducted=0.0,
             )
 
         x_sol = np.round(res.x).astype(int)
         selected = [features[i] for i in range(n) if x_sol[i] == 1]
         rejected = [features[i] for i in range(n) if x_sol[i] == 0]
 
-        tot_val = float(sum(f.expected_value for f in selected))
+        tot_val = float(sum(v[i] for i in range(n) if x_sol[i] == 1))
         tot_cost = float(sum(f.cost for f in selected))
         tot_lat = float(sum(f.latency_ms for f in selected))
         tot_eff = float(sum(f.effort_points for f in selected))
+        churn_deducted = float(sum(churn_penalty[i] for i in range(n) if x_sol[i] == 1))
 
         b_util = (tot_cost / max_budget * 100.0) if max_budget > 0 else 0.0
         l_util = (tot_lat / max_latency_ms * 100.0) if max_latency_ms > 0 else 0.0
@@ -154,13 +180,19 @@ class PortfolioOptimizer:
                 res_eval = milp(c=c_obj, integrality=integrality, constraints=lin_eval, bounds=bounds)
                 if res_eval.success and res_eval.x is not None:
                     x_eval = np.round(res_eval.x).astype(int)
-                    val_eval = float(sum(features[i].expected_value for i in range(n) if x_eval[i] == 1))
+                    val_eval = float(sum(v[i] for i in range(n) if x_eval[i] == 1))
                     cnt_eval = int(np.sum(x_eval))
                     efficient_frontier.append({
                         "budget": float(b_eval),
                         "value": val_eval,
                         "num_selected": cnt_eval,
                     })
+
+        status_msg = (
+            "Global optimal portfolio identified (Robust Defensible Floor mode)."
+            if robust_mode
+            else "Global optimal portfolio identified (Expected Value mode)."
+        )
 
         return OptimizationResult(
             selected_features=selected,
@@ -173,24 +205,32 @@ class PortfolioOptimizer:
             latency_utilization_pct=float(np.clip(l_util, 0.0, 100.0)),
             effort_utilization_pct=float(np.clip(e_util, 0.0, 100.0)),
             is_feasible=True,
-            status_message="Global optimal portfolio identified.",
+            status_message=status_msg,
             efficient_frontier=efficient_frontier,
+            is_robust=robust_mode,
+            churn_penalty_deducted=churn_deducted,
         )
 
     @staticmethod
-    def get_default_candidate_pool(current_experiment_value: float = 45000.0, current_experiment_cost: float = 1200.0) -> List[CandidateFeature]:
+    def get_default_candidate_pool(
+        current_experiment_value: float = 45000.0,
+        current_experiment_cost: float = 1200.0,
+    ) -> List[CandidateFeature]:
         """Generate realistic production candidate experiments for portfolio evaluation."""
+        active_val = max(1000.0, float(current_experiment_value))
         return [
             CandidateFeature(
                 feature_id="EXP_ACTIVE",
                 name="Current Active Experiment (Variant B)",
                 category="Primary Experiment",
-                expected_value=max(1000.0, float(current_experiment_value)),
+                expected_value=active_val,
                 cost=max(100.0, float(current_experiment_cost)),
                 latency_ms=8.0,
                 effort_points=5.0,
                 risk_score=0.10,
                 conflict_group=None,
+                defensible_floor_value=active_val * 0.65,
+                downstream_churn_risk=0.04,
             ),
             CandidateFeature(
                 feature_id="EXP_01",
@@ -202,6 +242,8 @@ class PortfolioOptimizer:
                 effort_points=13.0,
                 risk_score=0.25,
                 conflict_group="checkout_redesign",
+                defensible_floor_value=58000.0,
+                downstream_churn_risk=0.18,  # Aggressive 1-click can increase buyer remorse
             ),
             CandidateFeature(
                 feature_id="EXP_02",
@@ -213,6 +255,8 @@ class PortfolioOptimizer:
                 effort_points=8.0,
                 risk_score=0.15,
                 conflict_group="checkout_redesign",
+                defensible_floor_value=46000.0,
+                downstream_churn_risk=0.03,  # Smooth trustworthy UX
             ),
             CandidateFeature(
                 feature_id="EXP_03",
@@ -224,6 +268,8 @@ class PortfolioOptimizer:
                 effort_points=21.0,
                 risk_score=0.35,
                 conflict_group=None,
+                defensible_floor_value=82000.0,
+                downstream_churn_risk=0.15,
             ),
             CandidateFeature(
                 feature_id="EXP_04",
@@ -235,6 +281,8 @@ class PortfolioOptimizer:
                 effort_points=5.0,
                 risk_score=0.08,
                 conflict_group=None,
+                defensible_floor_value=28000.0,
+                downstream_churn_risk=0.01,
             ),
             CandidateFeature(
                 feature_id="EXP_05",
@@ -246,6 +294,8 @@ class PortfolioOptimizer:
                 effort_points=5.0,
                 risk_score=0.12,
                 conflict_group=None,
+                defensible_floor_value=40000.0,
+                downstream_churn_risk=0.05,
             ),
             CandidateFeature(
                 feature_id="EXP_06",
@@ -257,6 +307,8 @@ class PortfolioOptimizer:
                 effort_points=3.0,
                 risk_score=0.05,
                 conflict_group=None,
+                defensible_floor_value=13500.0,
+                downstream_churn_risk=0.00,
             ),
             CandidateFeature(
                 feature_id="EXP_07",
@@ -268,5 +320,7 @@ class PortfolioOptimizer:
                 effort_points=5.0,
                 risk_score=0.05,
                 conflict_group=None,
+                defensible_floor_value=26000.0,
+                downstream_churn_risk=0.00,
             ),
         ]

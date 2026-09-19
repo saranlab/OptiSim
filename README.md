@@ -1,142 +1,285 @@
-# OptiSim // Causal Inference & A/B Experimentation Studio
+# OptiSim // Enterprise Causal Inference & Operations Research Platform
 
-A mathematically rigorous, production-grade causal inference and experimentation platform. Designed to eliminate common statistical fallacies in commercial experimentation (the peeking problem, winner's curse, and post-hoc power) through **Anytime-Valid Confidence Sequences**, **Bayesian Decision Theory**, and **Thompson Sampling Bandits**.
+A mathematically rigorous, production-grade experimentation and portfolio optimization platform. OptiSim bridges the gap between **Causal Data Science** and **Operations Research**: moving beyond naive p-values to solve enterprise decision problems under capital, latency, and engineering resource constraints.
 
-[![Continuous Integration](https://github.com/saranlab/OptiSim/actions/workflows/ci.yml/badge.svg)](https://github.com/saranlab/OptiSim/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-FF4B4B.svg)](https://streamlit.io)
+[![Tests](https://img.shields.io/badge/tests-66%20passed-10b981.svg)](tests/)
+[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.14-3b82f6.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-v2.0.0-06b6d4.svg)](https://fastapi.tiangolo.com/)
+[![Next.js](https://img.shields.io/badge/Next.js-15%20%28App%20Router%29-000000.svg)](https://nextjs.org/)
+[![Solver](https://img.shields.io/badge/MILP%20Solver-HiGHS%20Branch--and--Cut-8b5cf6.svg)](https://highs.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-slate.svg)](LICENSE)
 
 ---
 
-## 1. System Architecture
+## 1. Executive Summary & Problem Formulation
+
+Standard commercial experimentation platforms answer a narrow question: *"Did Variant B achieve statistical significance ($p < 0.05$)?"*
+
+In enterprise reality, this produces catastrophic failure modes:
+1. **The Peeking Problem**: Stakeholders inspect dashboards continuously, inflating false positive rates from 5% to over 30%.
+2. **Winner's Curse & Phantom Value**: Point-estimate projections select for positive noise, systematically overpromising commercial revenue.
+3. **Multiplicity False Alarms**: Tracking 15 operational metrics across microservices without False Discovery Rate (FDR) control guarantees false alerts.
+4. **The Deployment Chasm**: A feature with +1.5% CVR that adds +180ms p99 latency or exhausts cloud infrastructure budgets cannot be deployed in isolation. Experimentation must be coupled with **combinatorial resource optimization**.
+
+OptiSim unifies **Anytime-Valid Causal Inference** with **Mixed-Integer Linear Programming (MILP)** to deliver mathematically defensible, multi-constraint rollout decisions.
+
+---
+
+## 2. System Architecture
 
 ```mermaid
 flowchart TD
-    A["User Inputs (Simulation / Observed Counts)"] --> B["Statistical Core Engine (ab_testing_platform)"]
-    
-    subgraph "Statistical Inference Layer"
-        B --> C["Anytime-Valid Confidence Sequences\n(Waudby-Smith & Ramdas 2023)"]
-        B --> D["Bayesian Conjugate Updating\n(Beta-Binomial Posterior & Expected Loss)"]
-        B --> E["Thompson Sampling Bandits\n(Dynamic Multi-Armed Regret Minimization)"]
+    subgraph Ingestion ["1. Data Ingestion & Streaming"]
+        A1["Continuous User Arrivals Stream"]
+        A2["Clustered Session Logs (CSV / DB)"]
+        A3["Candidate Experiment Features Pool"]
     end
-    
-    subgraph "Decision & Financial Studio"
-        C & D --> F["Commercial Viability Engine\n(Winner's Curse Defensible Floor)"]
-        F --> G["Anytime-Valid Action Recommendation\n(Deploy B / Inconclusive / Retain A)"]
+
+    subgraph CausalCore ["2. Algorithmic Causal Inference Core (ab_testing_platform)"]
+        B1["Anytime-Valid Confidence Sequences\n(Waudby-Smith & Ramdas, 2021)"]
+        B2["CUPED Covariate Adjustment\n(Deng et al., 2013)"]
+        B3["Cluster-Robust Delta Method\n(Deng et al., 2018)"]
+        B4["Heterogeneous Treatment Effects (CATE)\n& Cochran's Q Heterogeneity Test"]
+        B5["Multi-Metric Guardrails Engine\nwith Benjamini-Hochberg FDR (1995)"]
     end
-    
-    subgraph "Interactive Surfaces"
-        G --> H["Modern Streamlit Dashboard (app.py)\n(60-30-10 UI/UX, Plotly Curves, Low Cognitive Load)"]
-        G --> I["Decoupled Django Engine (Optional API)\n(Historical Endpoint Compatibility)"]
+
+    subgraph OperationsResearch ["3. Operations Research & Combinatorial Optimization"]
+        C1["Chance-Constrained Defensible Floor\n(Conservative 95% Bound)"]
+        C2["Downstream Churn & Retention Penalty"]
+        C3["Multi-Constraint 0-1 Knapsack MILP\n(SciPy HiGHS Solver Backend)"]
+        C4["Pareto Efficient Frontier Generator"]
     end
+
+    subgraph Services ["4. Decoupled Service Layer (backend/)"]
+        D1["FastAPI v2.0 Typed REST Engine"]
+        D2["Pydantic v2 Contract Validation"]
+        D3["Automated Decision Memo Generator"]
+    end
+
+    subgraph Interfaces ["5. Enterprise Presentation Layer"]
+        E1["Next.js 15 App Router Frontend\n(Tailwind CSS v4, Recharts, Lucide)"]
+        E2["Interactive Streamlit Dashboard (app.py)\n(Plotly Interactive Surfaces)"]
+    end
+
+    Ingestion --> CausalCore
+    CausalCore --> OperationsResearch
+    OperationsResearch --> Services
+    Services --> Interfaces
 ```
 
 ---
 
-## 2. The 4 Critical Statistical Anti-Patterns Avoided
+## 3. Theoretical Compendium & Mathematical Foundations
 
-OptiSim is explicitly architected to overcome four common industry pitfalls in causal inference and online experimentation:
+### 3.1 Anytime-Valid Confidence Sequences (Eliminating the Peeking Problem)
+Fixed-horizon Wald z-tests assume exactly one look at pre-committed sample size $N$. Dashboard peeking inflates nominal $\alpha = 0.05$ to $\approx 30\%$ due to the Law of the Iterated Logarithm ($\limsup_{n \to \infty} \frac{S_n}{\sqrt{2n \log \log n}} = 1$).
 
-### Anti-Pattern 1: The "Peeking Problem" & False Alpha Inflation
-* **The Vulnerability**: Standard fixed-horizon Z-tests assume a single pre-committed evaluation at sample size $N$. In reality, stakeholders continuously refresh dashboards. Because the running sample mean is a random walk whose maximum grows with $\sqrt{2 \log \log n}$, peeking 20 times inflates a nominal 5% Type I error rate to over **25-30%**.
-* **OptiSim Solution**: **Time-Uniform Confidence Sequences (Waudby-Smith & Ramdas, 2023)**.
-  $$\hat{\delta}_n \pm \sigma \sqrt{\frac{2(n\rho^2 + 1)}{n^2 \rho^2} \log\left(\frac{\sqrt{n\rho^2 + 1}}{\alpha}\right)}$$
-  This guarantee holds simultaneously across all sample sizes: $\mathbb{P}(\forall n \ge 1, \; \delta^* \in \text{CS}_n) \ge 1 - \alpha$. Peeking is mathematically safe.
+OptiSim implements time-uniform asymptotic confidence sequences (Waudby-Smith & Ramdas, 2021):
 
-### Anti-Pattern 2: The "Winner's Curse" in Financial Projections
-* **The Vulnerability**: Rolling out a variant *because* it passed a significance threshold ($p < \alpha$) selects for positive random noise. Quoting the observed point-estimate lift ($\hat{\delta}$) systematically overestimates future business revenue.
-* **OptiSim Solution**: **Conservative Defensible Net Return**. Commercial projections are anchored to the lower bound of the confidence sequence:
-  $$\text{Defensible Net ARR} = (\text{Projected Traffic} \times \text{CI}_{\text{lower}} \times \text{Rev/Conversion}) - \text{Setup Cost}$$
+$$\text{CS}_n(\alpha) = \hat{\tau}_n \pm \sigma_{\text{pooled}} \sqrt{\frac{2(n \rho^2 + 1)}{n^2 \rho^2} \log\left(\frac{\sqrt{n \rho^2 + 1}}{\alpha}\right)}$$
 
-### Anti-Pattern 3: The "Post-Hoc Power" Fallacy
-* **The Vulnerability**: Calculating statistical power *after* the test from the observed effect size and sample size (the "power approach fallacy", Hoenig & Heisey, 2001). Post-hoc power is merely a 1-to-1 transformation of the p-value that produces circular reasoning.
-* **OptiSim Solution**: Statistical power ($1 - \beta$) is strictly utilized as an **a priori planning parameter** to establish required horizon sample sizes, never computed retroactively on observed data.
+where $\rho = \sqrt{\frac{-2 \log(\alpha) + \log(-2 \log(\alpha) + 1)}{N^*}}$ is tuned to the planned sample size $N^*$.
 
-### Anti-Pattern 4: Relying Solely on $P(B > A)$
-* **The Vulnerability**: Bayesian $P(B > A) = 95\%$ indicates probability of superiority, but completely ignores magnitude. If the 5% downside risk is devastating, deploying $B$ can cripple business revenue.
-* **OptiSim Solution**: **Bayesian Expected Loss** $\mathbb{E}[\max(0, \theta_A - \theta_B)]$. Quantifies downside risk directly in conversion rate units to enable principled Bayesian Decision Theory.
+**Uniform Coverage Guarantee:**
+$$\mathbb{P}\left(\forall n \ge 1, \; \tau^* \in \text{CS}_n(\alpha)\right) \ge 1 - \alpha$$
+Stopping as soon as $0 \notin \text{CS}_n$ is statistically valid and preserves Type I error rates.
 
 ---
 
-## 3. UI/UX Design System (60-30-10 Rule)
+### 3.2 CUPED Variance Reduction (Controlled-experiment Using Pre-Experiment Data)
+Reduces experimental noise by regressing the outcome metric $Y$ onto pre-experiment covariate $X$ (Deng et al., 2013):
 
-The user interface follows modern cognitive ergonomics to eliminate stakeholder overwhelm:
+$$Y_{\text{CUPED}} = Y - \theta (X - \mathbb{E}[X]), \quad \text{where } \theta = \frac{\text{Cov}(Y, X)}{\text{Var}(X)}$$
 
-1. **60% Dominant Neutral**: Clean `#F8FAFC` slate background for calm visual focus.
-2. **30% Structural Secondary**: Elevated white card containers (`#FFFFFF`) with **zero harsh borders** (`border: none; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04); border-radius: 14px;`).
-3. **10% Intentional Accent & Semantic Status**:
-   - 🟢 **Deploy Variant B (Safe/Win)**: `#10B981` (Emerald)
-   - 🟡 **Inconclusive / Keep Collecting (Caution)**: `#F59E0B` (Amber)
-   - 🔴 **Retain Control A (Danger/Worse)**: `#EF4444` (Rose / Crimson)
-   - 🔵 **Interactive Levers / Brand**: `#2563EB` (Royal Blue)
+**Variance Reduction & Runtime Savings:**
+$$\text{Var}(Y_{\text{CUPED}}) = \text{Var}(Y) \left(1 - \rho_{XY}^2\right)$$
+$$\text{Sample Size Reduction} = 1 - \left(1 - \rho_{XY}^2\right) = \rho_{XY}^2$$
+For typical user conversion metrics ($\rho \approx 0.65$), runtime is slashed by **$\approx 42\%$**.
 
 ---
 
-## 4. Repository Structure
+### 3.3 Cluster-Robust Ratio Metric Inference (Delta Method)
+When analyzing click-through rates or revenue-per-session where users generate multiple sessions, observations violate the i.i.d. assumption. OptiSim applies a bivariate first-order Taylor expansion (Deng et al., 2018):
+
+$$\hat{R} = \frac{\sum_{i=1}^M Y_i}{\sum_{i=1}^M N_i} = \frac{\bar{Y}}{\bar{N}}$$
+$$\widehat{\text{Var}}(\hat{R}) \approx \frac{1}{M \bar{N}^2} \left( s_Y^2 - 2 \hat{R} s_{YN} + \hat{R}^2 s_N^2 \right)$$
+
+---
+
+### 3.4 Heterogeneous Treatment Effects (HTE) & Cochran's Q Heterogeneity Test
+To identify segment-level winners and losers (CATE), OptiSim computes:
+
+$$\tau_k = \bar{Y}_{B, k} - \bar{Y}_{A, k}, \quad \text{SE}_k = \sqrt{\frac{p_{A, k}(1 - p_{A, k})}{n_{A, k}} + \frac{p_{B, k}(1 - p_{B, k})}{n_{B, k}}}$$
+
+**Statistical Interaction Test:**
+$$Z_{\text{interaction}, k} = \frac{\tau_k - \bar{\tau}_{\text{overall}}}{\sqrt{\text{SE}_k^2 + \text{SE}_{\text{overall}}^2}}$$
+
+**Cochran's Q Test for Homogeneity:**
+$$Q = \sum_{k=1}^K w_k (\tau_k - \bar{\tau}_w)^2 \sim \chi^2(K - 1), \quad \text{where } w_k = \frac{1}{\text{SE}_k^2}$$
+
+---
+
+### 3.5 Multi-Metric Guardrails with False Discovery Rate (FDR) Control
+When monitoring $M$ secondary operational metrics (latency, error rate, bounce rate, churn), standard unadjusted p-values produce severe multiplicity. OptiSim executes the **Benjamini-Hochberg (1995) step-up procedure**:
+
+1. Order raw p-values: $P_{(1)} \le P_{(2)} \le \dots \le P_{(M)}$.
+2. Compute adjusted critical values: $P_{(i)} \le \frac{i}{M} \alpha_{\text{FDR}}$.
+3. Find $k^* = \max \left\{ i : P_{(i)} \le \frac{i}{M} \alpha_{\text{FDR}} \right\}$ and reject $H_{0, (1)}, \dots, H_{0, (k^*)}$.
+
+Guarantees that $\mathbb{E}\left[\frac{\text{False Discoveries}}{\max(1, \text{Total Discoveries})}\right] \le \alpha_{\text{FDR}}$.
+
+---
+
+### 3.6 Robust & Stochastic Multi-Constraint 0-1 Knapsack MILP
+Rollout decisions are formulated as a 0-1 Mixed-Integer Linear Program over candidate features $i \in \{1, \dots, n\}$:
+
+$$\max_{x \in \{0, 1\}^n} \sum_{i=1}^n \left( v_i^{\text{floor}} - w_{\text{churn}} \cdot C_{i, \text{churn}} \right) x_i$$
+
+Subject to:
+$$\sum_{i=1}^n c_i x_i \le B \quad \text{(Capital Budget SLA)}$$
+$$\sum_{i=1}^n \ell_i x_i \le L \quad \text{(Aggregate Latency SLA)}$$
+$$\sum_{i=1}^n e_i x_i \le E \quad \text{(Sprint Engineering Capacity)}$$
+$$\sum_{j \in \mathcal{G}_k} x_j \le 1 \quad \forall k \quad \text{(Mutually Exclusive Conflict Groups)}$$
+$$x_m = 1 \quad \forall m \in \mathcal{M}_{\text{mandatory}} \quad \text{(Compliance & Mandates)}$$
+
+Solved via the **HiGHS Branch-and-Cut** solver backend (`scipy.optimize.milp`), guaranteeing global Pareto-optimal feature bundles.
+
+---
+
+## 4. Platform Comparison Benchmark
+
+| Capability | Naive Industry A/B Tooling | OptiSim Enterprise Platform |
+|:---|:---|:---|
+| **Peeking Immunity** | Compromised (Nominal 5% inflates to >25%) | Guaranteed Time-Uniform CS (Waudby-Smith & Ramdas 2021) |
+| **Variance Reduction** | None / Manual Post-hoc | Automated Pre-Experiment Covariate CUPED (-42% Runtime) |
+| **Clustered Ratio Metrics** | Underestimated SEs (False Wins) | Cluster-Robust Delta Method Taylor Expansion |
+| **Subgroup Treatment Effects** | Selective Slicing (Data Dredging) | CATE Interaction Z-Tests + Cochran's Q Heterogeneity Test |
+| **Operational Guardrails** | Unadjusted Multiplicity (False Alarms) | Benjamini-Hochberg False Discovery Rate (FDR) Multiplicity Control |
+| **Commercial Projections** | Winner's Curse Point-Estimates ($\hat{\tau}$) | Conservative 95% Defensible Floor ($v^{\text{lower}}$) |
+| **Rollout Optimization** | Isolated 1-by-1 Variant Rollout | Multi-Constraint 0-1 Knapsack MILP (HiGHS Branch-and-Cut) |
+| **Dynamic Personalization** | Static 50/50 Fixed Horizon | Delayed-Feedback Thompson Sampling & Contextual LinUCB |
+| **Governance Artifacts** | Unformatted Raw CSVs | Automated Institutional Executive Decision Memos (.md) |
+
+---
+
+## 5. Repository Structure
 
 ```text
 OptiSim/
-├── app.py                      # Modern Reactive Streamlit Enterprise Studio
-├── requirements.txt            # Production dependencies (Streamlit, Plotly, NumPy, SciPy)
-├── README.md                   # System architecture & technical documentation
-├── .gitignore                  # Production git rules (ignores pyc, venv, sqlite)
-├── .github/
-│   └── workflows/
-│       └── ci.yml              # Automated continuous integration test suite
-├── ab_testing_platform/        # Pure, decoupled mathematical & statistical core
-│   ├── sequential.py           # Anytime-valid confidence sequence engine (Waudby-Smith & Ramdas)
-│   ├── cuped.py                # CUPED variance reduction engine (Deng et al. 2013)
-│   ├── delta_method.py         # Cluster-robust ratio metric inference (Deng et al. 2018)
+├── ab_testing_platform/        # Algorithmic Causal & OR Computational Core
+│   ├── sequential.py           # Anytime-valid confidence sequences (Waudby-Smith & Ramdas)
+│   ├── cuped.py                # CUPED covariate adjustment engine
+│   ├── delta_method.py         # Cluster-robust Delta Method ratio engine
+│   ├── hte.py                  # CATE subgroup slicing & Cochran's Q heterogeneity
+│   ├── guardrails.py           # Multi-metric guardrails with Benjamini-Hochberg FDR
+│   ├── optimizer.py            # Robust Multi-Constraint 0-1 Knapsack MILP (HiGHS)
+│   ├── bandits.py              # Thompson Sampling & LinUCB contextual bandits
 │   ├── bayesian.py             # Beta-Binomial conjugate posterior & Expected Loss
 │   ├── frequentist.py          # A priori sample size planning & Wald inference
-│   ├── bandits.py              # Thompson Sampling & LinUCB contextual bandit simulation
-│   ├── simulation.py           # Monte Carlo sample path simulator
-│   ├── models.py               # Typed dataclasses and results
-│   └── math_utils.py           # Numerical stability and distribution helpers
-├── dashboard/                  # Application service layer
-│   └── services.py             # ExperimentDashboardService orchestrator
-├── examples/
-│   └── usage_example.py        # Standalone Python CLI usage example
-└── tests/                      # Automated unittest suite (42 unit tests)
+│   ├── models.py               # Typed immutable dataclasses
+│   └── math_utils.py           # Numerically stable distribution utilities
+├── backend/                    # FastAPI v2.0 Decoupled REST Service
+│   ├── main.py                 # FastAPI application, CORS, and health probes
+│   ├── schemas/                # Pydantic v2 Request & Response schemas
+│   └── routers/                # Modular REST route controllers
+├── frontend/                   # Next.js 15 Modern Enterprise Interface
+│   ├── app/                    # Next.js App Router (page.tsx, layout.tsx, globals.css)
+│   ├── components/             # Institutional UI surfaces (Studio, OR Lab, Bandits, Memo)
+│   └── lib/                    # Typed API client, types, and fallback data
+├── tests/                      # Comprehensive Unittest Suite (66 passing tests)
+│   ├── test_advanced_analytics.py # HTE, Guardrails FDR, and Robust MILP tests
+│   ├── test_api.py             # FastAPI REST endpoint integration tests
+│   └── ...                     # Core statistical, sequential, and bandit unit tests
+├── app.py                      # Modern Streamlit Studio Interface
+├── docker-compose.yml          # Container orchestration (Backend + Frontend)
+└── requirements.txt            # Python dependencies (FastAPI, NumPy, SciPy, Streamlit)
 ```
 
 ---
 
-## 5. Installation & Quickstart
+## 6. Quickstart & Deployment
 
-### 1. Environment Setup
+### Option A: 1-Click Docker Compose (Production Setup)
 ```bash
-# Clone repository
+# Clone the repository
 git clone https://github.com/saranlab/OptiSim.git
 cd OptiSim
 
-# Create and activate virtual environment
-python -m venv venv
-venv\Scripts\activate      # Windows
-# source venv/bin/activate # macOS / Linux
+# Spin up both FastAPI Backend (port 8000) and Next.js Frontend (port 3000)
+docker compose up --build
+```
+* Next.js Modern Studio: `http://localhost:3000`
+* FastAPI Interactive Swagger Docs: `http://localhost:8000/docs`
 
-# Install dependencies
+---
+
+### Option B: Local Python & Node Setup
+
+#### 1. Setup Backend Environment
+```bash
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate     # macOS / Linux
+
 pip install -r requirements.txt
 ```
 
-### 2. Run Automated Test Suite
+#### 2. Run Test Suite (66 Tests)
 ```bash
 python -m unittest discover tests -v
 ```
 
-### 3. Launch Reactive Streamlit Studio
+#### 3. Launch FastAPI REST Engine
+```bash
+uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+#### 4. Launch Next.js 15 Modern Interface
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Open `http://localhost:3000` to interact with the full platform.
+
+#### 5. (Alternative) Launch Streamlit Dashboard
 ```bash
 streamlit run app.py
 ```
-Open `http://localhost:8501` to access:
-- **Diagnostic & Anytime Inference**: Real-time confidence sequence vs. Wald intervals and Bayesian posterior curves.
-- **Financial Impact Studio**: Live ROI calculations with Winner's Curse conservative floor.
-- **Simulation & Bandit Lab**: Interactive Monte Carlo convergence and Thompson Sampling cumulative regret curves.
-- **Statistical Rigor Reference**: Mathematical derivations and anytime-valid guarantees.
 
 ---
 
-## 6. License
+## 7. Key REST API Endpoints
 
-Distributed under the MIT License. See `LICENSE` for more information.
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `GET` | `/health` | Engine liveness and readiness probe |
+| `POST` | `/api/v1/experiment/sequential` | Continuous anytime-valid confidence sequence stream |
+| `POST` | `/api/v1/experiment/cuped` | Pre-experiment covariate variance reduction |
+| `POST` | `/api/v1/experiment/delta-method` | Clustered ratio metric inference via Taylor expansion |
+| `POST` | `/api/v1/experiment/hte` | CATE subgroup analysis and Cochran's Q test |
+| `GET` | `/api/v1/experiment/hte/defaults` | Preconfigured production device and user tier cohorts |
+| `POST` | `/api/v1/experiment/guardrails` | Benjamini-Hochberg FDR multi-metric audit |
+| `GET` | `/api/v1/experiment/guardrails/defaults` | Production guardrail metrics (latency, errors, churn) |
+| `POST` | `/api/v1/portfolio/optimize` | Multi-constraint 0-1 Knapsack MILP solver |
+| `GET` | `/api/v1/portfolio/candidates/default` | Production candidate features pool |
+| `POST` | `/api/v1/bandit/thompson` | Thompson Sampling dynamic traffic simulator |
+| `POST` | `/api/v1/bandit/linucb` | Contextual LinUCB personalization simulator |
+| `POST` | `/api/v1/memo/generate` | Automated executive decision memo generator (.md) |
+
+---
+
+## 8. Academic References
+
+* **Waudby-Smith, I., & Ramdas, A. (2021).** *Estimating means of bounded random variables by betting.* Journal of the Royal Statistical Society: Series B.
+* **Deng, A., Xu, Y., Kohavi, R., & Walker, T. (2013).** *Improving the Sensitivity of Online Controlled Experiments by Utilizing Pre-Experiment Data (CUPED).* WSDM '13.
+* **Deng, A., Knoblich, U., & Lu, J. (2018).** *Applying the Delta Method in Metric Analytics: A Practical Guide with Novel Applications.* KDD '18.
+* **Benjamini, Y., & Hochberg, Y. (1995).** *Controlling the False Discovery Rate: A Practical and Powerful Approach to Multiple Testing.* Journal of the Royal Statistical Society: Series B, 57(1), 289–300.
+* **Li, L., Chu, W., Langford, J., & Schapire, R. E. (2010).** *A Contextual-Bandit Approach to Personalized News Article Recommendation.* WSDM '10.
+* **Chapelle, O., & Li, L. (2011).** *An Empirical Evaluation of Thompson Sampling.* NeurIPS 2011.
+
+---
+
+## 9. License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.

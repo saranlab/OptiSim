@@ -21,9 +21,15 @@ from ab_testing_platform.models import (
     DeltaMethodResult,
     ExperimentData,
     FrequentistResult,
+    GuardrailAuditResult,
+    GuardrailMetric,
+    HTEAnalysisResult,
     OptimizationResult,
     SequentialResult,
+    SubgroupMetric,
 )
+from ab_testing_platform.guardrails import GuardrailEngine
+from ab_testing_platform.hte import HTEEngine
 from ab_testing_platform.optimizer import PortfolioOptimizer
 from ab_testing_platform.sequential import SequentialTest
 from ab_testing_platform.simulation import ExperimentSimulator
@@ -43,12 +49,18 @@ __all__ = [
     "ExperimentData",
     "ExperimentSimulator",
     "FrequentistResult",
+    "GuardrailAuditResult",
+    "GuardrailEngine",
+    "GuardrailMetric",
+    "HTEAnalysisResult",
+    "HTEEngine",
     "LinUCBBandit",
     "OptimizationResult",
     "PortfolioOptimizer",
     "SequentialResult",
     "SequentialTest",
     "StatsEngine",
+    "SubgroupMetric",
     "ThompsonSamplingBandit",
     "ValidationError",
     "format_percentage",
