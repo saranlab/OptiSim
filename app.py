@@ -158,10 +158,50 @@ st.markdown(
         overflow: hidden !important;
         text-overflow: ellipsis !important;
     }
-    div[data-testid="stMetric"] div[data-testid="stMetricDelta"] {
-        font-size: 0.8rem !important;
+    /* Next.js / Linear Modern Metric Delta Pills */
+    div[data-testid="stMetricDelta"] {
+        background: transparent !important;
+        padding: 0 !important;
+        margin-top: 6px !important;
+    }
+    div[data-testid="stMetricDelta"] > div {
+        background-color: #F1F5F9 !important;
+        color: #334155 !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 6px !important;
+        padding: 2px 8px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        font-size: 0.74rem !important;
         font-weight: 600 !important;
-        margin-top: 4px !important;
+        line-height: 1.4 !important;
+    }
+    div[data-testid="stMetricDelta"] span,
+    div[data-testid="stMetricDelta"] div {
+        background: transparent !important;
+        background-color: transparent !important;
+        color: inherit !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    div[data-testid="stMetricDelta"] svg {
+        display: none !important;
+    }
+
+    /* Modern KaTeX Display Containers */
+    .katex-display {
+        background: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        border-radius: 10px !important;
+        padding: 14px 18px !important;
+        margin: 12px 0 !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+    }
+    .katex {
+        color: #0F172A !important;
     }
 
     /* Native Container Cards */
@@ -2508,16 +2548,16 @@ with tab5:
     # Mathematical Foundations & Dual Prices
     with st.container(border=True):
         st.markdown(
-            r"""
-            <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 6px;">
+            """
+            <div style="font-size: 0.95rem; font-weight: 700; color: #0F172A; margin-bottom: 8px;">
                 Operations Research Formulation: Multi-Dimensional 0-1 Knapsack MILP
-            </div>
-            <div style="font-size: 0.85rem; color: #475569; line-height: 1.6;">
-                Let $x_i \in \{0, 1\}$ denote the binary deployment indicator for candidate feature $i \in \{1, \dots, n\}$. 
-                The optimization program is formulated as:
             </div>
             """,
             unsafe_allow_html=True,
+        )
+        st.markdown(
+            r"Let $x_i \in \{0, 1\}$ denote the binary deployment indicator for candidate feature $i \in \{1, \dots, n\}$. "
+            r"The optimization program is formulated as:"
         )
         st.markdown(
             r"""
