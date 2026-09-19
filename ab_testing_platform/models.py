@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -56,7 +56,33 @@ class FrequentistResult:
     ci_lower: float
     ci_upper: float
     alpha: float
-    power: float
+
+
+@dataclass(frozen=True)
+class SequentialResult:
+    """
+    Anytime-valid interval for the absolute lift, safe to inspect repeatedly.
+
+    Unlike :class:`FrequentistResult`, every field here remains valid no matter
+    how many times the experiment has already been looked at, so ``is_conclusive``
+    can be acted on the moment it flips without inflating the error rate.
+    """
+
+    absolute_lift: float
+    ci_lower: float
+    ci_upper: float
+    always_valid_p_value: float
+    is_conclusive: bool
+    direction: Optional[str]
+    alpha: float
+    effective_sample_size: float
+    planned_sample_size: int
+
+    @property
+    def progress(self) -> float:
+        """Fraction of the planned sample size collected so far, capped at 1.0."""
+
+        return min(1.0, safe_divide(self.effective_sample_size, self.planned_sample_size))
 
 
 @dataclass(frozen=True)

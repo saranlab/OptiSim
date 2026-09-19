@@ -12,6 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from ab_testing_platform import (
     BayesianEngine,
     ExperimentSimulator,
+    SequentialTest,
     StatsEngine,
     ThompsonSamplingBandit,
     format_percentage,
@@ -72,6 +73,25 @@ def main() -> None:
         f"[{format_percentage(frequentist_result.ci_lower)}, "
         f"{format_percentage(frequentist_result.ci_upper)}]"
     )
+
+    # Anytime-valid sequential inference (Waudby-Smith & Ramdas 2023).
+    sequential_result = SequentialTest.confidence_sequence(
+        conversions_a=experiment.conversions_a,
+        sample_size_a=experiment.sample_size_a,
+        conversions_b=experiment.conversions_b,
+        sample_size_b=experiment.sample_size_b,
+        alpha=alpha,
+        planned_sample_size=required_n,
+    )
+    print("\nAnytime-valid sequential inference (Peeking-Proof):")
+    print(
+        "  Always-valid CI for absolute lift: "
+        f"[{format_percentage(sequential_result.ci_lower)}, "
+        f"{format_percentage(sequential_result.ci_upper)}]"
+    )
+    print(f"  Always-valid p-value: {sequential_result.always_valid_p_value:.6f}")
+    print(f"  Is conclusive (excludes zero): {sequential_result.is_conclusive}")
+    print(f"  Decision direction: {sequential_result.direction}")
 
     # Bayesian Beta-Binomial inference.
     bayesian_engine = BayesianEngine(

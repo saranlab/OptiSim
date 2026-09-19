@@ -525,14 +525,22 @@
                   <dd>[{{ analysis.frequentist.ci_lower|percentage }} , {{ analysis.frequentist.ci_upper|percentage }}]</dd>
                 </div>
                 <div class="info-row">
-                  <dt>Observed Statistical Power</dt>
-                  <dd class="code-font {% if analysis.frequentist.power >= 0.80 %}text-positive{% else %}text-warning{% endif %}" style="font-weight: 700;">
-                    {{ analysis.frequentist.power|percentage }}
-                    {% if analysis.frequentist.power >= 0.80 %}
-                      <span style="font-size: 0.72rem; opacity: 0.95;">(Adequate)</span>
-                    {% else %}
-                      <span style="font-size: 0.72rem; opacity: 0.95;">(Low Power)</span>
-                    {% endif %}
+                  <dt>
+                    Always-Valid p-value
+                    <div class="tooltip" data-text="Safe to check as often as you like. Unlike the fixed-horizon p-value above, this one holds its false-positive rate at alpha no matter how many times the experiment has been looked at.">?</div>
+                  </dt>
+                  <dd class="code-font {% if analysis.sequential.is_conclusive %}text-positive{% else %}text-warning{% endif %}" style="font-weight: 700;">
+                    {{ analysis.sequential.always_valid_p_value|number:6 }}
+                  </dd>
+                </div>
+                <div class="info-row">
+                  <dt>Anytime-Valid Interval</dt>
+                  <dd class="code-font">[{{ analysis.sequential.ci_lower|percentage }} , {{ analysis.sequential.ci_upper|percentage }}]</dd>
+                </div>
+                <div class="info-row">
+                  <dt>Sequential Verdict</dt>
+                  <dd class="code-font {% if analysis.sequential.is_conclusive %}text-positive{% else %}text-warning{% endif %}" style="font-weight: 700;">
+                    {% if analysis.sequential.is_conclusive %}Conclusive{% else %}Not yet conclusive{% endif %}
                   </dd>
                 </div>
               </dl>
@@ -2140,7 +2148,7 @@
             verdictEl.innerHTML = '<span style="color: var(--color-danger);">✖ Statistically Significant (P ≤ 0.05). Variant B (Red button) yields a lower CVR than Control A (Blue button). Retain Control A!</span>';
           }
         } else {
-          verdictEl.innerHTML = '<span style="color: var(--color-warning);">ℹ Inconclusive (P > 0.05). The difference is not yet statistically significant. Continue simulating more visits to increase power.</span>';
+          verdictEl.innerHTML = '<span style="color: var(--color-warning);">ℹ Not yet conclusive. The anytime-valid interval still contains zero — keep collecting to the planned sample size.</span>';
         }
       }
 

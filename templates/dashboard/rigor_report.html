@@ -424,15 +424,15 @@
           <span class="step-math">[{{ analysis.frequentist.ci_lower|percentage }} , {{ analysis.frequentist.ci_upper|percentage }}]</span>
         </div>
         <div class="step-row">
-          <span class="step-label">Observed Statistical Power (1 - &beta;):</span>
-          <span class="step-math" style="font-weight: bold; color: {% if analysis.frequentist.power >= 0.80 %}#16a34a{% else %}#b45309{% endif %};">
-            {{ analysis.frequentist.power|percentage }}
-            {% if analysis.frequentist.power >= 0.80 %}
-              <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-gray-dark);">(Adequate)</span>
-            {% else %}
-              <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-gray-dark);">(Low Power)</span>
-            {% endif %}
+          <span class="step-label">Always-Valid p-value (anytime-valid):</span>
+          <span class="step-math" style="font-weight: bold; color: {% if analysis.sequential.is_conclusive %}#16a34a{% else %}#b45309{% endif %};">
+            {{ analysis.sequential.always_valid_p_value|number:6 }}
+            <span style="font-size: 0.75rem; font-weight: normal; color: var(--color-gray-dark);">(valid under unlimited looks)</span>
           </span>
+        </div>
+        <div class="step-row">
+          <span class="step-label">Anytime-Valid Confidence Sequence:</span>
+          <span class="step-math">[{{ analysis.sequential.ci_lower|percentage }} , {{ analysis.sequential.ci_upper|percentage }}]</span>
         </div>
         <div class="step-row">
           <span class="step-label">Frequentist Significance:</span>

@@ -10,6 +10,7 @@ import numpy as np
 from ab_testing_platform import (
     BayesianEngine,
     ExperimentSimulator,
+    SequentialTest,
     StatsEngine,
     ThompsonSamplingBandit,
 )
@@ -22,6 +23,7 @@ class DashboardAnalysis:
     required_sample_size: int
     experiment: Dict[str, Any]
     frequentist: Dict[str, Any]
+    sequential: Dict[str, Any]
     bayesian: Dict[str, Any]
     bandit: Dict[str, Any] | None = None
     mode: str = "simulation"
@@ -35,8 +37,8 @@ class ExperimentDashboardService:
 
     @staticmethod
     def run(
-        baseline_conversion_rate: float = 0.10,
-        expected_lift: float = 0.12,
+        baseline_conversion_rate: float = 10.0,
+        expected_lift: float = 12.0,
         alpha: float = 0.05,
         beta: float = 0.20,
         posterior_samples: int = 100_000,
@@ -51,6 +53,12 @@ class ExperimentDashboardService:
         implementation_cost: float = 500.0,
         projected_traffic: int = 100000,
     ) -> DashboardAnalysis:
+        # The lift field is a *planned* minimum detectable effect in both modes:
+        # what the experiment was designed to catch, decided before seeing data.
+        planned_mde = (
+            abs(float(expected_lift)) / 100.0 if expected_lift is not None else None
+        )
+
         if mode == "simulation":
             baseline_conversion_rate = float(baseline_conversion_rate) / 100.0
             expected_lift = float(expected_lift) / 100.0
@@ -66,13 +74,17 @@ class ExperimentDashboardService:
             cvr_b = conversions_b / sample_size_b if sample_size_b > 0 else 0.0
             observed_lift = (cvr_b - cvr_a) / cvr_a if cvr_a > 0 else 0.0
 
-            # Calculate required sample size post-hoc for the observed lift
+            # Sample size is a *design* question, so it must be driven by the
+            # effect the user cares about detecting - never by the effect they
+            # happened to observe. Feeding the observed lift back in as the MDE
+            # is circular: a lucky result reports a small "required" n precisely
+            # when the evidence is weakest.
             required_n = 0
-            if observed_lift > 0.0001:
+            if planned_mde and planned_mde > 0.0001:
                 try:
                     required_n = StatsEngine.required_sample_size_per_variation(
                         baseline_conversion_rate=cvr_a,
-                        minimum_detectable_effect=observed_lift,
+                        minimum_detectable_effect=planned_mde,
                         alpha=alpha,
                         beta=beta,
                     )
@@ -154,6 +166,34 @@ class ExperimentDashboardService:
                 "regret": bandit_summary.regret,
             }
 
+        # Anytime-valid inference. This is what the recommendation acts on: it
+        # stays valid no matter how many times the dashboard has been refreshed.
+        #
+        # The sequence is narrowest around the horizon it is tuned to, so the
+        # tuning constant is only anchored to `required_n` in planning mode,
+        # where that number is a genuine pre-declared plan. In real-data mode the
+        # user pastes counts from a test whose horizon they never told us - the
+        # MDE field belongs to the planning form - so anchoring to it would make
+        # the interval conservative for a reason unrelated to their experiment.
+        # There the engine falls back to the observed sample size.
+        planned_horizon = required_n if (mode != "real" and required_n > 0) else None
+        sequential_result = SequentialTest.confidence_sequence(
+            conversions_a=conversions_a,
+            sample_size_a=sample_size_a,
+            conversions_b=conversions_b,
+            sample_size_b=sample_size_b,
+            alpha=alpha,
+            planned_sample_size=planned_horizon,
+        )
+
+        # Progress is always measured against the sizing target on screen, which
+        # is not necessarily the horizon the sequence was tuned to.
+        plan_progress = (
+            min(1.0, sequential_result.effective_sample_size / required_n)
+            if required_n > 0
+            else 1.0
+        )
+
         # Financial Impact & ROI Calculations
         rev_per_conv = float(revenue_per_conversion)
         setup_cost = float(implementation_cost)
@@ -173,6 +213,11 @@ class ExperimentDashboardService:
         }
 
         # Calculate visualization variables
+        seq_dict = asdict(sequential_result)
+        seq_dict["progress"] = sequential_result.progress
+        seq_dict["conservative_gross_uplift"] = (
+            traffic * sequential_result.ci_lower * rev_per_conv
+        )
         freq_dict = asdict(frequentist_result)
         ci_lower = frequentist_result.ci_lower
         ci_upper = frequentist_result.ci_upper
@@ -210,44 +255,89 @@ class ExperimentDashboardService:
             "visual_width_b": float(np.clip((cvr_b / max_cvr) * 100.0, 5.0, 100.0)),
         }
 
-        # Recommendation Engine details
-        is_significant = frequentist_result.is_significant
+        # ------------------------------------------------------------------
+        # Recommendation Engine
+        #
+        # The verdict is driven by the *sequential* result, never the
+        # fixed-horizon p-value. A dashboard is refreshed at will, and a
+        # fixed-horizon test only controls alpha for a single pre-committed
+        # look; acting on it repeatedly pushes the real false-positive rate to
+        # roughly 25%. The confidence sequence is valid at every sample size at
+        # once, so the verdict below is safe to act on the moment it appears.
+        #
+        # There is also exactly one decision rule. Falling back to a Bayesian
+        # threshold whenever the frequentist test fails is two shots at the same
+        # data; the frequentist and Bayesian panels remain on screen as
+        # description, but they no longer trigger a recommendation.
+        # ------------------------------------------------------------------
         prob_b_better = bayesian_result.probability_b_better
-        p_val = frequentist_result.p_value
+        seq_p = sequential_result.always_valid_p_value
+        seq_lift = sequential_result.absolute_lift
+        progress = plan_progress
 
-        if sample_size_a < 100 or sample_size_b < 100:
+        if not sequential_result.is_conclusive:
             rec_status = "warning"
-            rec_title = "Warning: Underpowered / Small Sample"
-            rec_message = f"The sample size (A: {sample_size_a}, B: {sample_size_b}) is too small to draw reliable statistical conclusions. Continue running the test to gather more traffic."
-        elif is_significant:
-            if abs_lift > 0:
-                if net_benefit < 0:
-                    rec_status = "warning"
-                    rec_title = "Significant but Financially Unviable"
-                    rec_message = f"Variant B statistically outperformed the control (A) with a p-value of {p_val:.5f} (below α = {alpha}) and {prob_b_better:.2%} Bayesian probability. However, the expected gross uplift of ${gross_uplift:,.2f} over {traffic:,} projected users does not cover the setup cost of ${setup_cost:,.2f} (Net Loss: ${abs(net_benefit):,.2f}). Advise against deployment at current traffic/conversion value levels."
-                else:
-                    rec_status = "success"
-                    rec_title = "Deploy Variant B"
-                    rec_message = f"Variant B statistically outperformed the control (A) with a p-value of {p_val:.5f} (below α = {alpha}) and {prob_b_better:.2%} Bayesian probability. The observed relative lift is {frequentist_result.relative_lift:.2%}. It is financially viable with an expected net benefit of ${net_benefit:,.2f} (ROI: {roi:.1f}%)."
+            if progress < 1.0:
+                remaining = max(0, required_n - int(sequential_result.effective_sample_size))
+                rec_title = "Not Yet Conclusive - Keep Collecting"
+                rec_message = (
+                    f"The always-valid interval for the lift is "
+                    f"[{sequential_result.ci_lower:+.2%}, {sequential_result.ci_upper:+.2%}], "
+                    f"which still contains zero, so no effect has been established. "
+                    f"You are at {progress:.0%} of the planned {required_n:,} users per "
+                    f"variation (~{remaining:,} to go). Because this interval is "
+                    f"anytime-valid, you may check back as often as you like without "
+                    f"inflating the false-positive rate - checking early costs you nothing."
+                )
             else:
-                rec_status = "danger"
-                rec_title = "Retain Control (A)"
-                rec_message = f"Variant B performed statistically worse than the control (A) with a p-value of {p_val:.5f} and {1.0 - prob_b_better:.2%} probability of A being better. Do not deploy Variant B."
+                rec_title = "No Effect Detected - Stop the Test"
+                rec_message = (
+                    f"The planned sample of {required_n:,} users per variation is complete "
+                    f"and the always-valid interval "
+                    f"[{sequential_result.ci_lower:+.2%}, {sequential_result.ci_upper:+.2%}] "
+                    f"still contains zero. This is a genuine flat result, not a lack of data. "
+                    f"Retain Control (A) and invest the traffic in a bolder hypothesis; "
+                    f"running longer chases noise rather than signal."
+                )
+        elif sequential_result.direction == "b_better":
+            # The lift is only reported on winning tests, and conditioning on a
+            # win selects for overestimates (the winner's curse). Quote the
+            # interval's lower bound as the defensible floor for any business case.
+            conservative_gross = traffic * sequential_result.ci_lower * rev_per_conv
+            conservative_net = conservative_gross - setup_cost
+            if conservative_net < 0 and net_benefit < 0:
+                rec_status = "warning"
+                rec_title = "Real Effect, but Financially Unviable"
+                rec_message = (
+                    f"Variant B is a genuine winner (always-valid p = {seq_p:.5f}, lift "
+                    f"{seq_lift:+.2%}, interval [{sequential_result.ci_lower:+.2%}, "
+                    f"{sequential_result.ci_upper:+.2%}]). However the projected gross uplift "
+                    f"of ${gross_uplift:,.2f} over {traffic:,} users does not cover the "
+                    f"${setup_cost:,.2f} setup cost (net ${net_benefit:,.2f}). "
+                    f"Advise against deployment at current traffic and conversion value."
+                )
+            else:
+                rec_status = "success"
+                rec_title = "Deploy Variant B"
+                rec_message = (
+                    f"Variant B beats the control with an always-valid p-value of {seq_p:.5f} "
+                    f"(α = {alpha}); the anytime-valid interval "
+                    f"[{sequential_result.ci_lower:+.2%}, {sequential_result.ci_upper:+.2%}] "
+                    f"excludes zero, so this holds regardless of how often the test was "
+                    f"checked. Bayesian posterior agrees at {prob_b_better:.1%}. "
+                    f"Point estimate of net benefit is ${net_benefit:,.2f} (ROI {roi:.1f}%); "
+                    f"plan against the conservative floor of ${conservative_net:,.2f}, since "
+                    f"lifts measured on winning tests are biased upward."
+                )
         else:
-            if prob_b_better >= 0.90:
-                rec_status = "warning"
-                rec_title = "Inconclusive (Bayesian Trend B > A)"
-                rec_message = f"No frequentist significance yet (p = {p_val:.4f} > α = {alpha}), but Bayesian posterior probability indicates a {prob_b_better:.1%} chance that B is superior. We suggest continuing to collect data to verify this trend."
-                if net_benefit < 0:
-                    rec_message += f" Note: Even if B is superior, the projected net benefit is negative (${net_benefit:,.2f})."
-            elif prob_b_better <= 0.10:
-                rec_status = "warning"
-                rec_title = "Inconclusive (Bayesian Trend A > B)"
-                rec_message = f"No frequentist significance yet (p = {p_val:.4f} > α = {alpha}), but Bayesian posterior probability indicates a {(1.0 - prob_b_better):.1%} chance that Control A is superior. Consider halting the test or trying a new treatment."
-            else:
-                rec_status = "warning"
-                rec_title = "Inconclusive - Keep Testing"
-                rec_message = f"No statistically significant difference detected (p = {p_val:.4f} > α = {alpha}). Bayesian probability B > A is {prob_b_better:.1%}, showing high overlap between distributions. Continue testing."
+            rec_status = "danger"
+            rec_title = "Retain Control (A)"
+            rec_message = (
+                f"Variant B is genuinely worse: always-valid p = {seq_p:.5f} with an interval "
+                f"of [{sequential_result.ci_lower:+.2%}, {sequential_result.ci_upper:+.2%}], "
+                f"entirely below zero. Bayesian probability that A is better is "
+                f"{1.0 - prob_b_better:.1%}. Do not deploy Variant B."
+            )
 
         recommendation_dict = {
             "status": rec_status,
@@ -314,6 +404,7 @@ class ExperimentDashboardService:
             required_sample_size=required_n,
             experiment=experiment_dict,
             frequentist=freq_dict,
+            sequential=seq_dict,
             bayesian=asdict(bayesian_result),
             bandit=bandit_data,
             mode=mode,

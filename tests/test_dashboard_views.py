@@ -1,3 +1,9 @@
+import os
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+django.setup()
+
 from django.test import TestCase, Client
 from django.urls import reverse
 
@@ -105,7 +111,7 @@ class TestExperimentDashboardViews(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Methodology Verification Report")
         self.assertContains(response, "Two-Proportion Wald Z-Test")
-        self.assertContains(response, "Observed Statistical Power (1 - &beta;):")
+        self.assertContains(response, "Always-Valid p-value (anytime-valid):")
         self.assertContains(response, "Conjugate Beta-Binomial Inference")
         self.assertContains(response, "Financial Impact &amp; ROI Projections")
         self.assertContains(response, "12,400.0%")

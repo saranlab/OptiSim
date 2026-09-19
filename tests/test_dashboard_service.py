@@ -81,7 +81,7 @@ class TestExperimentDashboardService(unittest.TestCase):
         self.assertAlmostEqual(result_unviable.financials["gross_uplift"], 250000.0)
         self.assertAlmostEqual(result_unviable.financials["net_benefit"], -50000.0)
         self.assertEqual(result_unviable.recommendation["status"], "warning")
-        self.assertEqual(result_unviable.recommendation["title"], "Significant but Financially Unviable")
+        self.assertEqual(result_unviable.recommendation["title"], "Real Effect, but Financially Unviable")
 
 
 if __name__ == "__main__":
