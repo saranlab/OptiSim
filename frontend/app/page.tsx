@@ -35,11 +35,12 @@ import {
 } from "../lib/types";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<string>("inference");
+  const [activeTab, setActiveTab] = useState<string>("overview");
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
   const [isComputing, setIsComputing] = useState<boolean>(false);
 
-  // Sidebar Levers
+  // Levers State
   const [mode, setMode] = useState<"simulation" | "real">("simulation");
   const [preset, setPreset] = useState<string>("E-Commerce");
   const [confidence, setConfidence] = useState<string>("95%");
@@ -50,24 +51,24 @@ export default function Home() {
   const [setupCost, setSetupCost] = useState<number>(12000);
   const [annualTraffic, setAnnualTraffic] = useState<number>(240000);
 
-  // Model States
-  const [sequentialData, setSequentialData] = useState(initialSequentialData);
+  // Analytics State
+  const [sequentialData] = useState(initialSequentialData);
   const [cupedData] = useState(initialCupedData);
   const [deltaData] = useState(initialDeltaData);
-  const [hteData, setHteData] = useState<HTEResponse>(initialHteData);
+  const [hteData] = useState<HTEResponse>(initialHteData);
   const [guardrailsData, setGuardrailsData] = useState<GuardrailAuditResponse>(initialGuardrailsData);
   const [candidates] = useState<CandidateFeature[]>(initialCandidates);
   const [portfolioData, setPortfolioData] = useState<PortfolioOptimizeResponse>(initialPortfolioData);
   const [thompsonData, setThompsonData] = useState<ThompsonResponse>(initialThompsonData);
   const [linucbData, setLinucbData] = useState<LinUCBResponse>(initialLinUCBData);
-  const [memoData, setMemoData] = useState<MemoResponse>(initialMemoData);
+  const [memoData] = useState<MemoResponse>(initialMemoData);
 
-  // Derived values
+  // Derived Values
   const controlCvr = baselineCvr / 100;
   const treatmentCvr = (baselineCvr * (1 + expectedLift / 100)) / 100;
   const ciLower = treatmentCvr - controlCvr - 0.007;
   const ciUpper = treatmentCvr - controlCvr + 0.007;
-  const defensibleNet = Math.max(0, annualTraffic * (ciLower) * revPerConv - setupCost);
+  const defensibleNet = Math.max(0, annualTraffic * ciLower * revPerConv - setupCost);
 
   // Check backend health on mount
   useEffect(() => {
@@ -212,132 +213,138 @@ export default function Home() {
     }
   };
 
-  // PDF Export Trigger from Navbar
+  // Export PDF Handler from Navbar
   const handleExportPDF = async () => {
     if (activeTab !== "memo") {
       setActiveTab("memo");
       setTimeout(async () => {
-        await exportElementToPDF("executive-memo-document", `OptiSim-Executive-Memo-${Date.now()}.pdf`);
+        await exportElementToPDF("executive-memo-document", `OptiSim-Board-Decision-Memo-${Date.now()}.pdf`);
       }, 350);
     } else {
-      await exportElementToPDF("executive-memo-document", `OptiSim-Executive-Memo-${Date.now()}.pdf`);
+      await exportElementToPDF("executive-memo-document", `OptiSim-Board-Decision-Memo-${Date.now()}.pdf`);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] text-white flex flex-col font-sans selection:bg-blue-600 selection:text-white">
-      {/* Modern Minimal Navbar - Zero Borders */}
+    <div className="min-h-screen bg-[#09090b] text-white flex flex-col font-sans selection:bg-white selection:text-black">
+      {/* Top Navbar with embedded preset pills and drawer trigger - Zero Borders */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        preset={preset}
+        onApplyPreset={handleApplyPreset}
+        onToggleDrawer={() => setIsDrawerOpen(true)}
         isBackendConnected={isBackendConnected}
         onExportPDF={handleExportPDF}
       />
 
-      {/* Main Workspace Body */}
-      <div className="flex-1 flex max-w-[1550px] mx-auto w-full">
-        {/* Left Interactive Levers Panel - Zero Borders */}
-        <Sidebar
-          mode={mode}
-          setMode={setMode}
-          preset={preset}
-          setPreset={setPreset}
-          confidence={confidence}
-          setConfidence={setConfidence}
-          power={power}
-          setPower={setPower}
-          baselineCvr={baselineCvr}
-          setBaselineCvr={setBaselineCvr}
-          expectedLift={expectedLift}
-          setExpectedLift={setExpectedLift}
-          revPerConv={revPerConv}
-          setRevPerConv={setRevPerConv}
-          setupCost={setupCost}
-          setSetupCost={setSetupCost}
-          annualTraffic={annualTraffic}
-          setAnnualTraffic={setAnnualTraffic}
-          onApplyPreset={handleApplyPreset}
-          onRunComputation={handleRunComputation}
-          isComputing={isComputing}
+      {/* Slide-over Drawer for Parameter Levers */}
+      <Sidebar
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        mode={mode}
+        setMode={setMode}
+        preset={preset}
+        setPreset={setPreset}
+        confidence={confidence}
+        setConfidence={setConfidence}
+        power={power}
+        setPower={setPower}
+        baselineCvr={baselineCvr}
+        setBaselineCvr={setBaselineCvr}
+        expectedLift={expectedLift}
+        setExpectedLift={setExpectedLift}
+        revPerConv={revPerConv}
+        setRevPerConv={setRevPerConv}
+        setupCost={setupCost}
+        setSetupCost={setSetupCost}
+        annualTraffic={annualTraffic}
+        setAnnualTraffic={setAnnualTraffic}
+        onApplyPreset={handleApplyPreset}
+        onRunComputation={handleRunComputation}
+        isComputing={isComputing}
+      />
+
+      {/* Full-Width Tremor-Style Analytics Canvas - Responsive */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8 overflow-y-auto">
+        {/* Top Executive Decision Hero Cockpit */}
+        <VerdictBanner
+          status="success"
+          headline="Decision Recommendation: Ship Variant B to 100% of Traffic"
+          subtext="Anytime-valid confidence sequence excludes null effect across 24,000 observations. Multi-metric Benjamini-Hochberg FDR guardrails passed with zero critical regressions."
+          controlCvr={controlCvr}
+          treatmentCvr={treatmentCvr}
+          relativeLift={expectedLift / 100}
+          ciLower={ciLower}
+          ciUpper={ciUpper}
+          probBBetter={0.992}
+          defensibleNet={defensibleNet}
         />
 
-        {/* Center Canvas */}
-        <main className="flex-1 p-8 overflow-y-auto">
-          {/* Top Decision Verdict Banner */}
-          <VerdictBanner
-            status="success"
-            headline="Rollout Recommendation: Deploy to 100% of Production Traffic"
-            subtext="Anytime-valid confidence sequence excludes null effect across 24,000 observations. Multi-metric FDR guardrails clear with zero critical regressions."
-            controlCvr={controlCvr}
-            treatmentCvr={treatmentCvr}
-            relativeLift={expectedLift / 100}
-            ciLower={ciLower}
-            ciUpper={ciUpper}
-            probBBetter={0.992}
-            defensibleNet={defensibleNet}
-          />
-
-          {/* Tab Views */}
-          {activeTab === "inference" && (
-            <div className="space-y-6">
-              <TabInference
-                sequentialData={sequentialData}
-                cupedData={cupedData}
-                deltaData={deltaData}
-                controlCvr={controlCvr}
-                treatmentCvr={treatmentCvr}
-              />
-              <TabFinancials
-                annualTraffic={annualTraffic}
-                revPerConv={revPerConv}
-                setupCost={setupCost}
-                observedLiftPct={expectedLift}
-                ciLowerPct={ciLower * 100}
-              />
-            </div>
-          )}
-
-          {activeTab === "hte_guardrails" && (
-            <TabSubgroupsGuardrails
-              hteData={hteData}
-              guardrailsData={guardrailsData}
-              onRefreshGuardrails={handleRefreshGuardrails}
+        {/* Tab 1: Executive Overview */}
+        {activeTab === "overview" && (
+          <div className="space-y-8">
+            <TabInference
+              sequentialData={sequentialData}
+              cupedData={cupedData}
+              deltaData={deltaData}
+              controlCvr={controlCvr}
+              treatmentCvr={treatmentCvr}
             />
-          )}
-
-          {activeTab === "or_knapsack" && (
-            <TabORKnapsack
-              portfolioData={portfolioData}
-              candidates={candidates}
-              onReoptimize={handleReoptimize}
+            <TabFinancials
+              annualTraffic={annualTraffic}
+              revPerConv={revPerConv}
+              setupCost={setupCost}
+              observedLiftPct={expectedLift}
+              ciLowerPct={ciLower * 100}
             />
-          )}
-
-          {activeTab === "bandits" && (
-            <TabBandits
-              thompsonData={thompsonData}
-              linucbData={linucbData}
-              onSimulateThompson={handleSimulateThompson}
-              onSimulateLinUCB={handleSimulateLinUCB}
-            />
-          )}
-
-          {activeTab === "memo" && (
-            <ExecutiveMemoHub
-              memoData={memoData}
-              onRegenerate={() => {}}
-            />
-          )}
-        </main>
-      </div>
-
-      {/* Modern Minimal Footer - Zero Borders */}
-      <footer className="bg-[#09090b] px-8 py-5 mt-auto">
-        <div className="max-w-[1550px] mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-zinc-500">
-          <div>
-            <span>OptiSim</span> &bull; <span>3-Color Modern Minimal</span> &bull; <span>Anytime Sequence</span> &bull; <span>HiGHS MILP</span>
           </div>
-          <div className="text-zinc-500">
+        )}
+
+        {/* Tab 2: Subgroups & Guardrails */}
+        {activeTab === "hte_guardrails" && (
+          <TabSubgroupsGuardrails
+            hteData={hteData}
+            guardrailsData={guardrailsData}
+            onRefreshGuardrails={handleRefreshGuardrails}
+          />
+        )}
+
+        {/* Tab 3: Operations Research 0-1 Knapsack Lab */}
+        {activeTab === "or_knapsack" && (
+          <TabORKnapsack
+            portfolioData={portfolioData}
+            candidates={candidates}
+            onReoptimize={handleReoptimize}
+          />
+        )}
+
+        {/* Tab 4: Adaptive Personalization & Bandits */}
+        {activeTab === "bandits" && (
+          <TabBandits
+            thompsonData={thompsonData}
+            linucbData={linucbData}
+            onSimulateThompson={handleSimulateThompson}
+            onSimulateLinUCB={handleSimulateLinUCB}
+          />
+        )}
+
+        {/* Tab 5: Executive Board Memo */}
+        {activeTab === "memo" && (
+          <ExecutiveMemoHub
+            memoData={memoData}
+            onRegenerate={() => {}}
+          />
+        )}
+      </main>
+
+      {/* Minimal Monochrome Footer - Zero Borders */}
+      <footer className="bg-[#09090b] px-4 sm:px-8 py-6 mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs font-mono text-zinc-500 text-center sm:text-left">
+          <div>
+            <span>OptiSim</span> &bull; <span>Monochrome Minimal</span> &bull; <span>Waudby-Smith &amp; Ramdas (2021)</span> &bull; <span>HiGHS MILP</span>
+          </div>
+          <div>
             <span>FastAPI 2.0</span> &bull; <span>Next.js 15</span> &bull; <span>Zero Borders</span>
           </div>
         </div>

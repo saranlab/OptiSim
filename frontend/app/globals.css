@@ -5,10 +5,9 @@
   --foreground: #ffffff;
   --surface: rgba(255, 255, 255, 0.03);
   --surface-hover: rgba(255, 255, 255, 0.06);
-  --accent: #3b82f6;
-  --accent-muted: rgba(59, 130, 246, 0.15);
+  --surface-active: rgba(255, 255, 255, 0.10);
   --muted: #71717a;
-  --muted-light: #a1a1aa;
+  --muted-foreground: #a1a1aa;
 }
 
 body {
@@ -24,7 +23,7 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-/* Minimalist scrollbar - borderless */
+/* Minimalist scrollbar - pure monochrome, zero borders */
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -33,14 +32,14 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.30);
 }
 
-/* Print-to-PDF styles - clean vector output */
+/* Print-to-PDF styles - pure vector output */
 @media print {
   body {
     background-color: #ffffff !important;

@@ -18,15 +18,15 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Subgroup Heterogeneity (HTE CATE Analysis) */}
-      <div className="rounded-xl bg-white/[0.03] p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
+      {/* Subgroup Heterogeneity (HTE CATE Analysis) - Responsive Container */}
+      <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-medium text-white">
                 Heterogeneous Treatment Effects (HTE) Subgroup Slicing
               </h3>
-              <span className="rounded-full bg-blue-600/20 px-2.5 py-0.5 text-[10px] font-mono text-blue-400 font-medium uppercase tracking-wider">
+              <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[10px] font-mono text-white font-medium uppercase tracking-wider">
                 {hteData.has_heterogeneity ? "Heterogeneity Detected" : "Homogeneous"}
               </span>
             </div>
@@ -35,13 +35,13 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
             </p>
           </div>
           <div className="text-xs font-mono text-zinc-400">
-            Top Cohort: <span className="text-blue-400 font-medium">{hteData.top_performing_segment}</span>
+            Top Cohort: <span className="text-white font-medium">{hteData.top_performing_segment}</span>
           </div>
         </div>
 
-        {/* Forest Subgroups Table - Zero Borders */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono">
+        {/* Forest Subgroups Table - Mobile Scrollable */}
+        <div className="overflow-x-auto w-full scrollbar-none">
+          <table className="w-full text-left text-xs font-mono min-w-[640px]">
             <thead>
               <tr className="text-zinc-500">
                 <th className="py-3 px-3 font-normal">Cohort</th>
@@ -63,7 +63,7 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
                     {(sub.cvr_a * 100).toFixed(2)}% &rarr; {(sub.cvr_b * 100).toFixed(2)}%
                   </td>
                   <td className="py-3 px-3">
-                    <span className={sub.relative_lift > 0 ? "text-blue-400 font-medium" : "text-zinc-500"}>
+                    <span className={sub.relative_lift > 0 ? "text-white font-semibold" : "text-zinc-500"}>
                       {sub.relative_lift > 0 ? "+" : ""}
                       {(sub.relative_lift * 100).toFixed(2)}%
                     </span>
@@ -79,7 +79,7 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
                     <span
                       className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider ${
                         sub.is_significant && sub.relative_lift > 0
-                          ? "bg-blue-600/20 text-blue-400"
+                          ? "bg-white text-black font-semibold"
                           : "bg-white/[0.04] text-zinc-400"
                       }`}
                     >
@@ -97,20 +97,20 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
         </div>
       </div>
 
-      {/* Multi-Metric Guardrails Matrix */}
-      <div className="rounded-xl bg-white/[0.03] p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3 pb-2">
+      {/* Multi-Metric Guardrails Matrix - Responsive Cards Grid */}
+      <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2">
           <div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-sm font-medium text-white">
                 Operational Guardrails Matrix
               </h3>
-              <span className="rounded-full bg-white/[0.05] px-2.5 py-0.5 text-[10px] font-mono text-zinc-400">
+              <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-mono text-zinc-400">
                 Benjamini-Hochberg FDR Adjusted
               </span>
             </div>
             <p className="text-xs text-zinc-400 mt-1">
-              Guarantees conversion lift does not inadvertently degrade infrastructure latency, errors, or customer retention.
+              Guarantees conversion uplift does not inadvertently degrade latency, error rates, or retention.
             </p>
           </div>
 
@@ -129,13 +129,13 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
                 setFdrAlpha(val);
                 onRefreshGuardrails(val);
               }}
-              className="h-1 w-24 cursor-pointer appearance-none rounded-lg bg-white/[0.08] accent-blue-500"
+              className="h-1 w-24 cursor-pointer appearance-none rounded-lg bg-white/[0.12] accent-white"
             />
           </div>
         </div>
 
-        {/* Guardrail Metric Cards Grid - Zero Borders */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Guardrail Metric Cards Grid - Responsive */}
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {guardrailsData.metrics.map((metric) => {
             const isPass = metric.status === "PASS";
 
@@ -149,8 +149,8 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-medium uppercase tracking-wider ${
                       isPass
-                        ? "bg-blue-600/20 text-blue-400"
-                        : "bg-white/[0.08] text-white"
+                        ? "bg-white/[0.08] text-white"
+                        : "bg-white text-black font-semibold"
                     }`}
                   >
                     {metric.status}
@@ -164,7 +164,7 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
 
                 <div className="mt-2 text-xs font-mono">
                   <span className="text-zinc-400">Delta: </span>
-                  <span className={metric.status === "FAIL" ? "text-white font-bold" : "text-blue-400"}>
+                  <span className={metric.status === "FAIL" ? "text-white font-bold underline" : "text-white font-medium"}>
                     {metric.relative_change > 0 ? "+" : ""}
                     {metric.relative_change.toFixed(2)}%
                   </span>
