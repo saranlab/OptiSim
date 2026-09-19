@@ -11,7 +11,7 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { Play } from "lucide-react";
+import { Play, Sparkles, BrainCircuit } from "lucide-react";
 import { LinUCBResponse, ThompsonResponse } from "../lib/types";
 
 interface TabBanditsProps {
@@ -45,12 +45,12 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Module 1: Thompson Sampling */}
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-5">
+        {/* Module 1: Thompson Sampling (Bayesian Exploration vs Exploitation) */}
+        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-5 flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
             <div>
-              <h3 className="text-sm font-medium text-white">Thompson Sampling Routing</h3>
-              <p className="text-xs text-zinc-400">Bayesian dynamic exploration vs. exploitation</p>
+              <h3 className="text-sm font-medium text-white">Thompson Sampling Dynamic Routing</h3>
+              <p className="text-xs text-zinc-400">Bayesian posterior updates with delayed asynchronous feedback.</p>
             </div>
             <span className="rounded-full bg-white/[0.08] px-2.5 py-0.5 text-[10px] font-mono text-white font-medium w-fit">
               Beta-Binomial
@@ -60,8 +60,8 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div className="space-y-1.5 rounded-xl bg-white/[0.02] p-3">
               <div className="flex justify-between text-zinc-400">
-                <span>Arrivals:</span>
-                <span className="text-white font-bold">{nRounds.toLocaleString()}</span>
+                <span>Arrivals (n):</span>
+                <span className="text-white font-bold tabular-nums">{nRounds.toLocaleString()}</span>
               </div>
               <input
                 type="range"
@@ -76,8 +76,8 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
 
             <div className="space-y-1.5 rounded-xl bg-white/[0.02] p-3">
               <div className="flex justify-between text-zinc-400">
-                <span>Delay:</span>
-                <span className="text-white font-bold">{delayRounds} rounds</span>
+                <span>Feedback Delay:</span>
+                <span className="text-white font-bold tabular-nums">{delayRounds} rounds</span>
               </div>
               <input
                 type="range"
@@ -113,6 +113,7 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
                     borderRadius: "8px",
                     color: "#ffffff",
                     boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
+                    fontFamily: "ui-monospace, monospace",
                   }}
                   formatter={(v: any) => [`${v}%`, "Traffic Share"]}
                 />
@@ -128,36 +129,51 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
           <div className="grid grid-cols-2 gap-3 pt-2 text-xs font-mono">
             <div className="rounded-xl bg-white/[0.02] p-3">
               <span className="text-[10px] text-zinc-500 block mb-1">Cumulative Rewards</span>
-              <span className="text-base sm:text-lg font-semibold text-white">
-                {thompsonData.cumulative_reward.toLocaleString()}
+              <span className="text-base sm:text-lg font-semibold text-white tabular-nums">
+                {thompsonData.cumulative_reward.toLocaleString()} conv
               </span>
             </div>
             <div className="rounded-xl bg-white/[0.02] p-3">
               <span className="text-[10px] text-zinc-500 block mb-1">Cumulative Regret</span>
-              <span className="text-base sm:text-lg font-semibold text-zinc-400">
+              <span className="text-base sm:text-lg font-semibold text-zinc-400 tabular-nums">
                 {thompsonData.regret.toFixed(1)} conv
               </span>
             </div>
           </div>
         </div>
 
-        {/* Module 2: LinUCB Contextual Bandit */}
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-5">
+        {/* Module 2: LinUCB Contextual Personalization (MLE Feature Rigor) */}
+        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-5 flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
             <div>
-              <h3 className="text-sm font-medium text-white">LinUCB Contextual Personalization</h3>
-              <p className="text-xs text-zinc-400">Disjoint Ridge Regression over 3D context vectors</p>
+              <h3 className="text-sm font-medium text-white flex items-center gap-1.5">
+                <BrainCircuit className="h-4 w-4 text-white" />
+                <span>LinUCB Contextual Personalization</span>
+              </h3>
+              <p className="text-xs text-zinc-400">Disjoint Ridge Regression over 3D context vectors (Li et al., 2010).</p>
             </div>
             <span className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[10px] font-mono text-zinc-400 w-fit">
-              Li et al.
+              Context d = 3
             </span>
+          </div>
+
+          {/* Context Vector Specification Box (MLE Transparency) */}
+          <div className="rounded-xl bg-white/[0.02] p-3 text-[11px] font-mono text-zinc-400 space-y-1">
+            <div className="text-white font-semibold flex items-center gap-1">
+              <span>Context Vector x_t &in; R^3:</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 pt-1 text-[10px]">
+              <div><strong className="text-zinc-300">x_1:</strong> Device (Desktop)</div>
+              <div><strong className="text-zinc-300">x_2:</strong> Tier (Enterprise)</div>
+              <div><strong className="text-zinc-300">x_3:</strong> Recency (Returning)</div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
             <div className="space-y-1.5 rounded-xl bg-white/[0.02] p-3">
               <div className="flex justify-between text-zinc-400">
-                <span>Rounds:</span>
-                <span className="text-white font-bold">{linucbRounds}</span>
+                <span>Rounds (n):</span>
+                <span className="text-white font-bold tabular-nums">{linucbRounds}</span>
               </div>
               <input
                 type="range"
@@ -172,8 +188,8 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
 
             <div className="space-y-1.5 rounded-xl bg-white/[0.02] p-3">
               <div className="flex justify-between text-zinc-400">
-                <span>Exploration &alpha;:</span>
-                <span className="text-white font-bold">{linucbAlpha.toFixed(2)}</span>
+                <span>Exploration (&alpha;):</span>
+                <span className="text-white font-bold tabular-nums">{linucbAlpha.toFixed(2)}</span>
               </div>
               <input
                 type="range"
@@ -196,7 +212,7 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
           </button>
 
           <div className="space-y-2.5 pt-2">
-            <span className="text-xs font-medium text-zinc-400 block font-mono">Personalized Allocation</span>
+            <span className="text-xs font-medium text-zinc-400 block font-mono">Personalized Allocation &amp; Empirical CTR</span>
             {Object.keys(linucbData.arm_pulls).map((arm) => {
               const pulls = linucbData.arm_pulls[arm] || 0;
               const totalPulls = Object.values(linucbData.arm_pulls).reduce((a, b) => a + b, 0) || 1;
@@ -208,9 +224,9 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
                 <div key={arm} className="rounded-xl bg-white/[0.02] p-3 text-xs font-mono">
                   <div className="flex flex-wrap justify-between text-zinc-300 mb-1.5 gap-1">
                     <span className="font-medium text-white">{arm}</span>
-                    <span className="text-zinc-400 text-[11px]">
+                    <span className="text-zinc-400 text-[11px] tabular-nums">
                       {pulls.toLocaleString()} pulls ({pct.toFixed(1)}%) | CTR:{" "}
-                      <span className="text-white font-semibold">{armCtr.toFixed(1)}%</span>
+                      <span className="text-white font-semibold tabular-nums">{armCtr.toFixed(1)}%</span>
                     </span>
                   </div>
                   <div className="h-1 w-full rounded-full bg-white/[0.06] overflow-hidden">
@@ -222,8 +238,8 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
           </div>
 
           <div className="pt-2 flex items-center justify-between text-xs font-mono">
-            <span className="text-zinc-400">Achieved Empirical CTR:</span>
-            <span className="text-white font-bold text-sm">
+            <span className="text-zinc-400">Aggregate Contextual CTR:</span>
+            <span className="text-white font-bold text-sm tabular-nums">
               {(linucbData.ctr * 100).toFixed(2)}%
             </span>
           </div>

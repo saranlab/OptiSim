@@ -32,7 +32,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
     <div className="space-y-6">
       {/* 4 Responsive KPI Cards - Pure Monochrome, Zero Borders */}
       <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6">
+        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
           <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
             Point Estimate Net ARR
           </div>
@@ -45,7 +45,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white/[0.06] p-5 sm:p-6">
+        <div className="rounded-2xl bg-white/[0.06] p-5 sm:p-6 flex flex-col justify-between">
           <div className="text-[11px] font-medium text-white uppercase tracking-wider font-mono">
             Defensible Net ARR Floor
           </div>
@@ -58,7 +58,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
           </div>
         </div>
 
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6">
+        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
           <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
             Implementation Sunk Cost
           </div>
@@ -68,7 +68,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
           <div className="mt-2 text-xs text-zinc-500 font-mono">Fixed engineering capital</div>
         </div>
 
-        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6">
+        <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 flex flex-col justify-between">
           <div className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider font-mono">
             Breakeven Horizon
           </div>
@@ -79,7 +79,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
         </div>
       </div>
 
-      {/* Comparison Table - Responsive Overflow */}
+      {/* Comparison Table - Strict Column Alignment */}
       <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
         <div>
           <h3 className="text-sm font-medium text-white">
@@ -91,26 +91,26 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
         </div>
 
         <div className="overflow-x-auto w-full scrollbar-none">
-          <table className="w-full text-left text-xs font-mono min-w-[580px]">
+          <table className="w-full text-xs font-mono min-w-[620px]">
             <thead>
               <tr className="text-zinc-500">
-                <th className="py-3 px-3 font-normal">Methodology</th>
-                <th className="py-3 px-3 font-normal">Assumed Lift</th>
-                <th className="py-3 px-3 font-normal">Gross Lift</th>
-                <th className="py-3 px-3 font-normal">Net Annual ARR</th>
+                <th className="py-3 px-3 font-normal text-left">Methodology</th>
+                <th className="py-3 px-3 font-normal text-right">Assumed Lift</th>
+                <th className="py-3 px-3 font-normal text-right">Gross Lift</th>
+                <th className="py-3 px-3 font-normal text-right">Net Annual ARR</th>
                 <th className="py-3 px-3 font-normal text-right">Audit Status</th>
               </tr>
             </thead>
             <tbody>
               <tr className="hover:bg-white/[0.02] transition-colors">
-                <td className="py-3 px-3 font-medium text-zinc-400">
+                <td className="py-3 px-3 font-medium text-zinc-400 text-left">
                   Naive Observed Point Estimate
                 </td>
-                <td className="py-3 px-3 text-zinc-400">+{observedLiftPct.toFixed(1)}%</td>
-                <td className="py-3 px-3 text-zinc-400">
+                <td className="py-3 px-3 text-zinc-400 text-right tabular-nums">+{observedLiftPct.toFixed(1)}%</td>
+                <td className="py-3 px-3 text-zinc-400 text-right tabular-nums">
                   ${pointGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
-                <td className="py-3 px-3 text-zinc-300">
+                <td className="py-3 px-3 text-zinc-300 text-right tabular-nums">
                   ${pointNet.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="py-3 px-3 text-right">
@@ -120,14 +120,14 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
                 </td>
               </tr>
               <tr className="bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
-                <td className="py-3 px-3 font-semibold text-white">
+                <td className="py-3 px-3 font-semibold text-white text-left">
                   Conservative Defensible Floor
                 </td>
-                <td className="py-3 px-3 text-white font-medium">+{ciLowerPct.toFixed(2)}%</td>
-                <td className="py-3 px-3 text-zinc-200">
+                <td className="py-3 px-3 text-white font-medium text-right tabular-nums">+{ciLowerPct.toFixed(2)}%</td>
+                <td className="py-3 px-3 text-zinc-200 text-right tabular-nums">
                   ${defensibleGross.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
-                <td className="py-3 px-3 font-semibold text-white">
+                <td className="py-3 px-3 font-semibold text-white text-right tabular-nums">
                   ${defensibleNet.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </td>
                 <td className="py-3 px-3 text-right">
