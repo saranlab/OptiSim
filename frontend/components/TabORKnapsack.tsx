@@ -337,7 +337,7 @@ export const TabORKnapsack: React.FC<TabORKnapsackProps> = ({
                   fontFamily: "ui-monospace, monospace",
                 }}
                 labelFormatter={(b) => `Budget Envelope: $${b ? Number(b).toLocaleString() : 0}`}
-                formatter={(v: any) => [`$${Number(v).toLocaleString()}`, "Max Unlocked ARR"]}
+                formatter={(v: unknown) => [`$${Number(v).toLocaleString()}`, "Max Unlocked ARR"]}
               />
               <Line
                 type="monotone"

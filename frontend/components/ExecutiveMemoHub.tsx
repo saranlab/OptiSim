@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   FileText,
   Download,
@@ -431,7 +431,7 @@ Approved (Signature Verified) & Approved (HiGHS 1.8 OPTIMAL) & Approved (100\\% 
             <span>Single-Page A4 Executive PDF Viewer</span>
             <span>1-Page Board Canvas</span>
           </div>
-          {pdfEmbedUrl ? (
+          {!isGeneratingEmbed && pdfEmbedUrl ? (
             <iframe
               src={pdfEmbedUrl}
               className="w-full h-[850px] rounded-xl bg-white border-none shadow-2xl"

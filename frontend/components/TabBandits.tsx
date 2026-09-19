@@ -11,7 +11,7 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { Play, Sparkles, BrainCircuit } from "lucide-react";
+import { Play, BrainCircuit } from "lucide-react";
 import { LinUCBResponse, ThompsonResponse } from "../lib/types";
 import { LatexMath } from "./LatexMath";
 
@@ -128,7 +128,7 @@ export const TabBandits: React.FC<TabBanditsProps> = ({
                     boxShadow: "0 10px 25px rgba(0,0,0,0.5)",
                     fontFamily: "ui-monospace, monospace",
                   }}
-                  formatter={(v: any) => [`${v}%`, "Traffic Share"]}
+                  formatter={(v: unknown) => [`${String(v)}%`, "Traffic Share"]}
                 />
                 <Bar dataKey="allocationPct" radius={[4, 4, 0, 0]}>
                   {thompsonChartData.map((_, index) => (

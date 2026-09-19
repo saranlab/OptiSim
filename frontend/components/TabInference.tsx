@@ -102,9 +102,9 @@ export const TabInference: React.FC<TabInferenceProps> = ({
                   fontFamily: "ui-monospace, monospace",
                 }}
                 labelFormatter={(label) => `Sample Size: ${label ? Number(label).toLocaleString() : 0} users`}
-                formatter={(val: any, name: any) => [
+                formatter={(val: unknown, name: unknown) => [
                   `${Number(val) > 0 ? "+" : ""}${Number(val).toFixed(2)} pp`,
-                  name === "tau" ? "Absolute Lift (τ)" : name === "lower" ? "95% Lower (Ln)" : "95% Upper (Un)",
+                  String(name) === "tau" ? "Absolute Lift (τ)" : String(name) === "lower" ? "95% Lower (Ln)" : "95% Upper (Un)",
                 ]}
               />
               <ReferenceLine

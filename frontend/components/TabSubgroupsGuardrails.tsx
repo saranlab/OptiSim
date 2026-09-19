@@ -32,7 +32,7 @@ export const TabSubgroupsGuardrails: React.FC<TabSubgroupsGuardrailsProps> = ({
               </span>
             </div>
             <p className="text-xs text-zinc-400 mt-1">
-              Conditional Average Treatment Effect (CATE) across segmented user cohorts. Cochran's Q interaction test distinguishes true variation from noise.
+              Conditional Average Treatment Effect (CATE) across segmented user cohorts. Cochran&apos;s Q interaction test distinguishes true variation from noise.
             </p>
           </div>
           <div className="text-xs font-mono text-zinc-400">

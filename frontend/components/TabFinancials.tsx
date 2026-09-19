@@ -41,7 +41,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
           </div>
           <div className="mt-2 text-xs text-zinc-500 flex items-center gap-1 font-mono">
             <AlertCircle className="h-3.5 w-3.5 shrink-0 text-zinc-400" />
-            <span>Vulnerable to Winner's Curse</span>
+            <span>Vulnerable to Winner&apos;s Curse</span>
           </div>
         </div>
 
@@ -83,7 +83,7 @@ export const TabFinancials: React.FC<TabFinancialsProps> = ({
       <div className="rounded-2xl bg-white/[0.03] p-5 sm:p-6 space-y-4">
         <div>
           <h3 className="text-sm font-medium text-white">
-            Capital Defensibility Audit: Winner's Curse Protection
+            Capital Defensibility Audit: Winner&apos;s Curse Protection
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
             Statistical selection bias artificially inflates observed effects. Only the confidence lower bound is fiscally defensible.

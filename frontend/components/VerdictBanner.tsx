@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, TrendingUp, ShieldAlert, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 interface VerdictBannerProps {
   status: "success" | "warning" | "danger";
